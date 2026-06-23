@@ -78,6 +78,11 @@ let engine: SpeedTestEngine | null = null
 /** Снятие глобальных перехватчиков ошибок (ставятся на время замера). */
 let detachGlobalHandlers: (() => void) | null = null
 
+/** Время последнего применённого обновления метрик (для throttle UI). */
+let lastUiUpdate = 0
+/** Минимальный интервал между обновлениями UI во время замера, мс. */
+const UI_THROTTLE_MS = 100
+
 /**
  * Вешает временные window-перехватчики, чтобы поймать ошибки движка,
  * которые всплывают асинхронно (unhandledrejection) и не доходят до
@@ -145,6 +150,7 @@ export const useSpeedtestStore = create<SpeedtestState>((set, get) => ({
     disposeEngine()
 
     console.info(LOG, 'start')
+    lastUiUpdate = 0
     set({ running: true, phase: 'latency', current: {}, error: null })
 
     try {
@@ -169,14 +175,17 @@ export const useSpeedtestStore = create<SpeedtestState>((set, get) => ({
 
     engine.onResultsChange = ({ type }): void => {
       if (!engine) return
-      const s = engine.results.getSummary()
       const phase = phaseFromType(type)
-      console.debug(LOG, 'results', type, {
-        dl: s.download,
-        ul: s.upload,
-        lat: s.latency,
-        jit: s.jitter
-      })
+
+      // Throttle: движок шлёт результаты десятки раз в секунду. Применяем
+      // в UI не чаще, чем раз в UI_THROTTLE_MS, иначе цифра дрожит и
+      // страница перерисовывается слишком часто (лаги). Смену фазы
+      // пропускаем всегда — она редкая и важна для индикации.
+      const now = Date.now()
+      if (phase === null && now - lastUiUpdate < UI_THROTTLE_MS) return
+      lastUiUpdate = now
+
+      const s = engine.results.getSummary()
       set({
         ...(phase ? { phase } : {}),
         current: {

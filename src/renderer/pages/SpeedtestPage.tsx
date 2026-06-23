@@ -18,7 +18,13 @@ function fmt(n: number | undefined, digits = 1): string {
   return n == null ? '—' : n.toFixed(digits)
 }
 
-/** Полукруговой спидометр на SVG. Цвета — через токены тем. */
+/** Полукруговой спидометр на SVG. Цвета — через токены тем.
+ *
+ * Дуга рисуется через stroke-dasharray/offset с CSS-transition: значение
+ * меняется плавно (браузер анимирует сам), без пересчёта path и дёрганья.
+ * viewBox с запасом по краям, чтобы толстая линия и скруглённые концы
+ * не обрезались.
+ */
 function Speedometer({
   value,
   phase
@@ -27,53 +33,53 @@ function Speedometer({
   phase: SpeedtestPhase
 }): JSX.Element {
   const r = 120
-  const cx = 150
-  const cy = 150
+  const cx = 160
+  const cy = 160
+  const stroke = 18
   const frac = value != null ? gaugeFraction(value) : 0
-  // Полукруг: угол от 180° (слева) до 0° (справа).
-  const angle = Math.PI * (1 - frac)
-  const x = cx + r * Math.cos(angle)
-  const y = cy - r * Math.sin(angle)
-  const largeArc = frac > 0.5 ? 1 : 0
 
-  const trackPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
-  const valuePath =
-    frac > 0 ? `M ${cx - r} ${cy} A ${r} ${r} 0 ${largeArc} 1 ${x} ${y}` : ''
+  // Длина полудуги (полуокружность).
+  const arcLen = Math.PI * r
+  // Путь полудуги слева направо (180° → 0°).
+  const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
 
   const active = phase === 'download' || phase === 'upload'
+  const valueColor = active ? 'rgb(var(--accent))' : 'rgb(var(--ok))'
 
   return (
-    <svg viewBox="0 0 300 170" className="w-full max-w-sm">
+    <svg viewBox="0 0 320 200" className="w-full max-w-sm">
+      {/* Трек (фон дуги) */}
       <path
-        d={trackPath}
+        d={arcPath}
         fill="none"
         stroke="rgb(var(--surface-2))"
-        strokeWidth={16}
+        strokeWidth={stroke}
         strokeLinecap="round"
       />
-      {valuePath && (
-        <path
-          d={valuePath}
-          fill="none"
-          stroke={active ? 'rgb(var(--accent))' : 'rgb(var(--ok))'}
-          strokeWidth={16}
-          strokeLinecap="round"
-        />
-      )}
+      {/* Значение: показываем долю дуги через dashoffset, плавно. */}
+      <path
+        d={arcPath}
+        fill="none"
+        stroke={valueColor}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={arcLen}
+        strokeDashoffset={arcLen * (1 - frac)}
+        style={{ transition: 'stroke-dashoffset 0.45s ease-out, stroke 0.3s' }}
+      />
       <text
         x={cx}
-        y={cy - 18}
+        y={cy - 14}
         textAnchor="middle"
-        className="fill-current"
-        style={{ fontSize: 38, fontWeight: 700, fill: 'rgb(var(--accent))' }}
+        style={{ fontSize: 40, fontWeight: 700, fill: 'rgb(var(--accent))' }}
       >
         {fmt(value)}
       </text>
       <text
         x={cx}
-        y={cy + 6}
+        y={cy + 12}
         textAnchor="middle"
-        style={{ fontSize: 13, fill: 'rgb(var(--muted))' }}
+        style={{ fontSize: 14, fill: 'rgb(var(--muted))' }}
       >
         Mbps
       </text>
