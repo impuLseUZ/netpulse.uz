@@ -20,6 +20,7 @@
     "publish:win": "electron-vite build && electron-builder --win --publish always --config electron-builder.yml"
   },
   "dependencies": {
+    "@cloudflare/speedtest": "^1.10.1",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.2.1",
     "i18next": "^23.11.5",

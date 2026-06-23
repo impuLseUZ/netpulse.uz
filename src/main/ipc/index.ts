@@ -7,6 +7,7 @@ import { registerDnsIpc } from './dns'
 import { registerPingIpc } from './ping'
 import { registerScannerIpc } from './scanner'
 import { registerTracerIpc } from './tracer'
+import { registerSpeedtestIpc } from './speedtest'
 
 export function registerAllIpc(): void {
   registerAppIpc()
@@ -15,4 +16,5 @@ export function registerAllIpc(): void {
   registerPingIpc()
   registerScannerIpc()
   registerTracerIpc()
+  registerSpeedtestIpc()
 }

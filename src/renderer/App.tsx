@@ -12,6 +12,7 @@ import { DnsPage } from '@/pages/DnsPage'
 import { PingPortPage } from '@/pages/PingPortPage'
 import { ScannerPage } from '@/pages/ScannerPage'
 import { TracerPage } from '@/pages/TracerPage'
+import { SpeedtestPage } from '@/pages/SpeedtestPage'
 
 export function App(): JSX.Element {
   const initApp = useAppStore((s) => s.init)
@@ -41,6 +42,7 @@ export function App(): JSX.Element {
     if (active === 'pingport') return <PingPortPage />
     if (active === 'scanner') return <ScannerPage />
     if (active === 'tracer') return <TracerPage />
+    if (active === 'speedtest') return <SpeedtestPage />
     // Пока все функциональные модули — заглушки. Будут заменяться по очереди.
     return <ModulePlaceholder titleKey={item.labelKey} icon={item.icon} />
   }
