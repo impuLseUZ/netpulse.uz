@@ -1,0 +1,48 @@
+appId: com.netpulse.app
+productName: NetPulse
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - resources/**
+
+# Фид автообновления (Модуль 7). Замените owner/repo на свой репозиторий.
+# electron-updater читает эти данные из app-update.yml, который генерирует
+# electron-builder при сборке. Для надёжного апдейта нужна подпись кода.
+publish:
+  provider: github
+  owner: your-github-owner
+  repo: netpulse
+
+win:
+  target:
+    - target: portable
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  artifactName: ${productName}-${version}-setup.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Network
+  artifactName: ${productName}-${version}.${ext}
+
+mac:
+  target:
+    - dmg
+  category: public.app-category.utilities
+  artifactName: ${productName}-${version}.${ext}
