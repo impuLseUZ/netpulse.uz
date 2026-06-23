@@ -147,11 +147,20 @@ export function SpeedtestPage(): JSX.Element {
 
   useEffect(() => {
     void loadNetworkInfo()
+    // намеренно пустые зависимости: загрузка IP — разово при входе.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Глушим активный замер ТОЛЬКО при реальном уходе со страницы (unmount).
+  useEffect(() => {
     return () => {
-      // Останавливаем активный замер при уходе со страницы.
-      if (useSpeedtestStore.getState().running) useSpeedtestStore.getState().stop()
+      const st = useSpeedtestStore.getState()
+      if (st.running) {
+        console.info('[speedtest] page unmount → stop')
+        st.stop()
+      }
     }
-  }, [loadNetworkInfo])
+  }, [])
 
   // Значение для спидометра: во время upload показываем upload, иначе download.
   const gaugeValue = useMemo(() => {
@@ -197,7 +206,10 @@ export function SpeedtestPage(): JSX.Element {
 
         {!running ? (
           <button
-            onClick={start}
+            onClick={() => {
+              console.info('[speedtest] start button clicked')
+              start()
+            }}
             className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-accent text-accent-fg text-sm font-medium"
           >
             <Play size={16} />

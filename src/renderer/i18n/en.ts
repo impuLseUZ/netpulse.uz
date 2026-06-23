@@ -146,7 +146,6 @@ export default {
       latency: "Measuring latency…",
       download: "Measuring download…",
       upload: "Measuring upload…",
-      packetLoss: "Measuring packet loss…",
       done: "Test complete",
       error: "Test failed",
     },
