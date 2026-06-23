@@ -75,7 +75,35 @@ interface SpeedtestState {
 /** Движок держим вне стора — это ресурс, а не сериализуемое состояние. */
 let engine: SpeedTestEngine | null = null
 
+/** Снятие глобальных перехватчиков ошибок (ставятся на время замера). */
+let detachGlobalHandlers: (() => void) | null = null
+
+/**
+ * Вешает временные window-перехватчики, чтобы поймать ошибки движка,
+ * которые всплывают асинхронно (unhandledrejection) и не доходят до
+ * onError / try-catch. Логируем полный стек — это и есть диагностика
+ * «теста, который молча обрывается». Возвращает функцию снятия.
+ */
+function attachGlobalHandlers(): () => void {
+  const onRejection = (e: PromiseRejectionEvent): void => {
+    console.error(LOG, 'unhandledrejection during test:', e.reason)
+  }
+  const onError = (e: ErrorEvent): void => {
+    console.error(LOG, 'window error during test:', e.message, e.error)
+  }
+  window.addEventListener('unhandledrejection', onRejection)
+  window.addEventListener('error', onError)
+  return () => {
+    window.removeEventListener('unhandledrejection', onRejection)
+    window.removeEventListener('error', onError)
+  }
+}
+
 function disposeEngine(): void {
+  if (detachGlobalHandlers) {
+    detachGlobalHandlers()
+    detachGlobalHandlers = null
+  }
   if (engine) {
     try {
       engine.pause()
@@ -204,6 +232,14 @@ export const useSpeedtestStore = create<SpeedtestState>((set, get) => ({
       }
       disposeEngine()
     }
+
+    // Движок Cloudflare измеряет скорость через Performance Resource Timing
+    // и делает fetch в микротасках. Если запрос падает или отсутствует
+    // performance-запись, ошибка всплывает как unhandledrejection и НЕ
+    // попадает в try/catch вокруг play(). Ставим временные глобальные
+    // перехватчики, чтобы залогировать полный стек и не дать ошибке
+    // «молча» оборвать тест. Снимаем их в disposeEngine().
+    detachGlobalHandlers = attachGlobalHandlers()
 
     try {
       engine.play()
