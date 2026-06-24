@@ -47,3 +47,44 @@ export interface WhoisResult {
   raw: string
   elapsedMs: number
 }
+
+/* ── SSL / TLS сертификат ── */
+
+export interface SslQuery {
+  /** Домен (хост). */
+  host: string
+  /** Порт TLS, по умолчанию 443. */
+  port?: number
+}
+
+export interface SslResult {
+  host: string
+  port: number
+  /** Общее имя (CN) субъекта сертификата. */
+  subjectCN?: string
+  /** Альтернативные имена (SAN), уже распарсенные. */
+  altNames: string[]
+  /** Издатель: организация (O) или CN. */
+  issuer?: string
+  /** Действителен с (ISO-строка). */
+  validFrom?: string
+  /** Действителен до (ISO-строка). */
+  validTo?: string
+  /** Сколько дней осталось до истечения (может быть отрицательным). */
+  daysRemaining?: number
+  /** Истёк ли сертификат. */
+  expired: boolean
+  /** Серийный номер. */
+  serialNumber?: string
+  /** Отпечаток SHA-256. */
+  fingerprint256?: string
+  /** Версия протокола (например "TLSv1.3"). */
+  protocol?: string
+  /** Согласованный шифр (например "TLS_AES_256_GCM_SHA384"). */
+  cipher?: string
+  /** Прошла ли стандартная проверка доверия цепочки. */
+  authorized: boolean
+  /** Причина, если проверка доверия не прошла. */
+  authorizationError?: string
+  elapsedMs: number
+}

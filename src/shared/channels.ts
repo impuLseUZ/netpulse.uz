@@ -16,6 +16,7 @@ export const CHANNELS = {
   dns: {
     lookup: "dns:lookup",
     whois: "dns:whois",
+    ssl: "dns:ssl",
   },
   ping: {
     once: "ping:once",

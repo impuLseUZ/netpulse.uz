@@ -11,8 +11,6 @@ import {
   DnsQuery,
   WhoisQuery,
   WhoisResult,
-  SslQuery,
-  SslResult,
 } from "@shared/dns-types";
 import {
   ContinuousStartQuery,
@@ -54,8 +52,6 @@ const api = {
       ipcRenderer.invoke(CHANNELS.dns.lookup, query),
     whois: (query: WhoisQuery): Promise<IpcResult<WhoisResult>> =>
       ipcRenderer.invoke(CHANNELS.dns.whois, query),
-    ssl: (query: SslQuery): Promise<IpcResult<SslResult>> =>
-      ipcRenderer.invoke(CHANNELS.dns.ssl, query),
   },
 
   ping: {

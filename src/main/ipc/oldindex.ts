@@ -8,7 +8,6 @@ import { registerPingIpc } from './ping'
 import { registerScannerIpc } from './scanner'
 import { registerTracerIpc } from './tracer'
 import { registerSpeedtestIpc } from './speedtest'
-import { registerNetinfoIpc } from './netinfo'
 
 export function registerAllIpc(): void {
   registerAppIpc()
@@ -18,5 +17,4 @@ export function registerAllIpc(): void {
   registerScannerIpc()
   registerTracerIpc()
   registerSpeedtestIpc()
-  registerNetinfoIpc()
 }
