@@ -6,16 +6,18 @@ directories:
 files:
   - out/**/*
   - package.json
+  - node_modules/ssh2/**/*
+  - node_modules/cpu-features/**/*
 asarUnpack:
   - resources/**
+  - node_modules/ssh2/**/*
+  - node_modules/cpu-features/**/*
 
-# Фид автообновления (Модуль 7). Замените owner/repo на свой репозиторий.
-# electron-updater читает эти данные из app-update.yml, который генерирует
-# electron-builder при сборке. Для надёжного апдейта нужна подпись кода.
+# Фид автообновления — GitHub Releases репозитория impuLseUZ/netpulse.uz
 publish:
   provider: github
-  owner: your-github-owner
-  repo: netpulse
+  owner: impuLseUZ
+  repo: netpulse.uz
 
 win:
   target:
