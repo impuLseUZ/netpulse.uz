@@ -46,6 +46,9 @@ export const CHANNELS = {
   speedtest: {
     getNetworkInfo: "speedtest:getNetworkInfo",
   },
+  netinfo: {
+    getAddresses: "netinfo:getAddresses",
+  },
 
   updater: {
     getState: "updater:getState",
@@ -65,5 +68,5 @@ export type ChannelName =
   | (typeof CHANNELS.scanner)[keyof typeof CHANNELS.scanner]
   | (typeof CHANNELS.tracer)[keyof typeof CHANNELS.tracer]
   | (typeof CHANNELS.speedtest)[keyof typeof CHANNELS.speedtest]
+  | (typeof CHANNELS.netinfo)[keyof typeof CHANNELS.netinfo]
   | (typeof CHANNELS.updater)[keyof typeof CHANNELS.updater];
-  
