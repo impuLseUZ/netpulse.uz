@@ -1,7 +1,7 @@
 export default {
   app: {
     name: "NetPulse",
-    tagline: "Tarmoqingizning nab zi",
+    tagline: "Tarmoq pulsini o‘lchang",
   },
   nav: {
     scanner: "Tarmoq skaneri",
@@ -35,18 +35,14 @@ export default {
     version: "Versiya",
     updatesSection: "Yangilanishlar",
     checkOnStart: "Ishga tushganda tekshirish",
-    autoDownload: "Avtomatik yuklab olish",
   },
   update: {
     checking: "Yangilanishlar tekshirilmoqda…",
     available: "Yangi versiya {{version}} mavjud",
     notAvailable: "So'nggi versiya o'rnatilgan",
-    downloading: "Yangilanish yuklanmoqda… {{percent}}%",
-    downloaded: "Yangilanish yuklandi",
     error: "Yangilanishlarni tekshirib bo'lmadi",
     check: "Yangilanishlarni tekshirish",
-    download: "Yuklab olish",
-    install: "Qayta ishga tushirish va yangilash",
+    downloadFromGithub: "GitHub'dan yuklab olish",
     whatsNew: "Yangiliklar",
     dismiss: "Keyinroq",
     notesTitle: "{{version}} versiyasidagi yangiliklar",
@@ -221,8 +217,12 @@ export default {
     welcome: "SSH mijoz",
     welcomeHint: "Profil qo'shing va ulanish uchun ikki marta bosing",
     savePassword: "Parolni saqlash",
-    savePasswordWarning: "Parol sizning lokal kompyuteringizda shifrlangan holda saqlanadi. Operatsion tizim hisobingizga kirmasdan uni o'qib bo'lmaydi. Ishonchingiz komilmi?",
+    savePasswordWarning:
+      "Parol sizning lokal kompyuteringizda shifrlangan holda saqlanadi. Operatsion tizim hisobingizga kirmasdan uni o'qib bo'lmaydi. Ishonchingiz komilmi?",
     savePasswordConfirm: "Ha, saqlash",
     savePasswordDecline: "Saqlamaslik",
+    passwordWillBeAsked:
+      "Parol har ulanishda so'raladi. U yerda saqlash yoki saqlamas tanlay olasiz.",
+    privateKeyHint: "Kalit ushbu kompyuterda shifrlangan holda saqlanadi.",
   },
 };

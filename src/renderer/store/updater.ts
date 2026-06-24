@@ -7,8 +7,6 @@ interface UpdaterState {
   dismissed: boolean
   init: () => Promise<void>
   check: () => Promise<void>
-  download: () => Promise<void>
-  install: () => Promise<void>
   dismiss: () => void
 }
 
@@ -17,14 +15,13 @@ export const useUpdaterStore = create<UpdaterState>((set) => ({
   dismissed: false,
 
   init: async () => {
-    // Текущее состояние на момент монтирования + подписка на дальнейшие пуши.
     const res = await window.netpulse.updater.getState()
     if (res.ok) set({ state: res.data })
     window.netpulse.updater.onState((state: UpdateState) =>
       set((prev) => ({
         state,
         // Новая доступная версия — снова показываем баннер.
-        dismissed: state.status === 'available' ? false : prev.dismissed
+        dismissed: state.status === 'available' ? false : prev.dismissed,
       }))
     )
   },
@@ -32,11 +29,6 @@ export const useUpdaterStore = create<UpdaterState>((set) => ({
   check: async () => {
     await window.netpulse.updater.check()
   },
-  download: async () => {
-    await window.netpulse.updater.download()
-  },
-  install: async () => {
-    await window.netpulse.updater.quitAndInstall()
-  },
-  dismiss: () => set({ dismissed: true })
+
+  dismiss: () => set({ dismissed: true }),
 }))

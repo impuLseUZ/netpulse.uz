@@ -1,15 +1,19 @@
 /**
- * SshProfileForm — модальный диалог создания / редактирования SSH-профиля.
- * Также используется как диалог ввода пароля при подключении
- * (когда профиль сохранён без пароля / с ключевой авторизацией).
+ * SshProfileForm — диалог создания / редактирования SSH-профиля.
+ *
+ * Намеренно НЕ содержит поля пароля — пароль запрашивается отдельно
+ * при каждом подключении через SshPasswordPrompt, где пользователь
+ * сам решает сохранить его или нет.
+ *
+ * Приватный ключ (key auth) вставляется здесь, т.к. это не секрет
+ * в обычном смысле — он хранится зашифрованным через safeStorage.
  */
 import { useState } from 'react'
-import { X, Eye, EyeOff, Key, Lock } from 'lucide-react'
+import { X, Key, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { SshProfile, SshAuthType } from '@shared/ssh-types'
 
 interface Props {
-  /** Профиль для редактирования. Если null — создание нового. */
   profile?: Partial<SshProfile> | null
   onSave: (profile: SshProfile) => void
   onCancel: () => void
@@ -22,16 +26,14 @@ function generateId(): string {
 export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Element {
   const { t } = useTranslation()
 
-  const [label, setLabel] = useState(profile?.label ?? '')
-  const [host, setHost] = useState(profile?.host ?? '')
-  const [port, setPort] = useState(String(profile?.port ?? 22))
+  const [label, setLabel]       = useState(profile?.label ?? '')
+  const [host, setHost]         = useState(profile?.host ?? '')
+  const [port, setPort]         = useState(String(profile?.port ?? 22))
   const [username, setUsername] = useState(profile?.username ?? '')
   const [authType, setAuthType] = useState<SshAuthType>(profile?.authType ?? 'password')
-  const [password, setPassword] = useState('')
   const [privateKey, setPrivateKey] = useState('')
-  const [note, setNote] = useState(profile?.note ?? '')
-  const [showPassword, setShowPassword] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [note, setNote]         = useState(profile?.note ?? '')
+  const [errors, setErrors]     = useState<Record<string, string>>({})
 
   const validate = (): boolean => {
     const e: Record<string, string> = {}
@@ -39,6 +41,7 @@ export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Elemen
     if (!username.trim()) e.username = t('ssh.errorRequired')
     const portNum = parseInt(port, 10)
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) e.port = t('ssh.errorPort')
+    if (authType === 'key' && !privateKey.trim()) e.privateKey = t('ssh.errorRequired')
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -52,8 +55,9 @@ export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Elemen
       port: parseInt(port, 10),
       username: username.trim(),
       authType,
-      password: password || undefined,
-      privateKey: privateKey || undefined,
+      // Пароль НЕ сохраняем здесь — он запрашивается при подключении.
+      // Приватный ключ сохраняем только для key-auth.
+      privateKey: authType === 'key' ? privateKey.trim() || undefined : undefined,
       note: note.trim() || undefined,
       lastConnectedAt: profile?.lastConnectedAt,
     })
@@ -67,22 +71,21 @@ export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Elemen
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+
         {/* Заголовок */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <h2 className="font-semibold text-fg">
             {profile?.id ? t('ssh.editProfile') : t('ssh.newProfile')}
           </h2>
-          <button
-            onClick={onCancel}
-            className="text-muted hover:text-fg transition-colors"
-          >
+          <button onClick={onCancel} className="text-muted hover:text-fg transition-colors">
             <X size={18} />
           </button>
         </div>
 
         {/* Тело */}
         <div className="overflow-y-auto p-5 space-y-4 flex-1">
-          {/* Название */}
+
+          {/* Название профиля */}
           <div>
             <label className={labelCls}>{t('ssh.profileLabel')}</label>
             <input
@@ -117,7 +120,7 @@ export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Elemen
             </div>
           </div>
 
-          {/* Пользователь */}
+          {/* Имя пользователя */}
           <div>
             <label className={labelCls}>{t('ssh.username')}</label>
             <input
@@ -160,59 +163,27 @@ export function SshProfileForm({ profile, onSave, onCancel }: Props): JSX.Elemen
             </div>
           </div>
 
-          {/* Пароль */}
+          {/* Password auth — подсказка (пароль вводится при подключении) */}
           {authType === 'password' && (
-            <div>
-              <label className={labelCls}>{t('ssh.password')}</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className={`${inputCls} pr-9`}
-                  placeholder={t('ssh.passwordPlaceholder')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              <p className="text-xs text-muted mt-1">{t('ssh.passwordHint')}</p>
+            <div className="rounded-lg bg-surface-2 border border-border px-4 py-3">
+              <p className="text-xs text-muted leading-relaxed">
+                {t('ssh.passwordWillBeAsked')}
+              </p>
             </div>
           )}
 
-          {/* Приватный ключ */}
+          {/* Key auth — поле приватного ключа */}
           {authType === 'key' && (
             <div>
               <label className={labelCls}>{t('ssh.privateKey')}</label>
               <textarea
-                className={`${inputCls} font-mono text-xs resize-none h-28`}
+                className={`${inputCls} font-mono text-xs resize-none h-32 ${errors.privateKey ? 'border-error' : ''}`}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                 value={privateKey}
                 onChange={(e) => setPrivateKey(e.target.value)}
               />
-              {/* Passphrase для ключа */}
-              <label className={`${labelCls} mt-3`}>{t('ssh.passphrase')}</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className={`${inputCls} pr-9`}
-                  placeholder={t('ssh.passphrasePlaceholder')}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-fg"
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
+              {errors.privateKey && <p className={errorCls}>{errors.privateKey}</p>}
+              <p className="text-xs text-muted mt-1">{t('ssh.privateKeyHint')}</p>
             </div>
           )}
 

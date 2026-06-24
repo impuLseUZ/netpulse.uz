@@ -72,6 +72,8 @@ export interface UpdateInfo {
   releaseNotes?: string
   releaseName?: string
   releaseDate?: string
+  /** Ссылка на страницу релиза для ручного скачивания. */
+  downloadUrl?: string
 }
 
 export interface UpdateProgress {

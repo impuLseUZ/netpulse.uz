@@ -105,13 +105,7 @@ export function SettingsPage(): JSX.Element {
                 onChange={(v) => void update({ updateCheckOnStart: v })}
               />
             </Field>
-            <Field label={t('settings.autoDownload')}>
-              <Toggle
-                value={settings.updateAutoDownload}
-                onChange={(v) => void update({ updateAutoDownload: v })}
-              />
-            </Field>
-            <div className="flex items-center justify-between gap-4">
+<div className="flex items-center justify-between gap-4">
               <span className="text-sm text-muted">{updateStatusText()}</span>
               <button
                 onClick={() => void updater.check()}

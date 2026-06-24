@@ -35,18 +35,15 @@ export default {
     version: "Версия",
     updatesSection: "Обновления",
     checkOnStart: "Проверять при запуске",
-    autoDownload: "Загружать автоматически",
+
   },
   update: {
     checking: "Проверка обновлений…",
     available: "Доступна новая версия {{version}}",
     notAvailable: "Установлена последняя версия",
-    downloading: "Загрузка обновления… {{percent}}%",
-    downloaded: "Обновление загружено",
     error: "Не удалось проверить обновления",
     check: "Проверить обновления",
-    download: "Загрузить",
-    install: "Перезапустить и обновить",
+    downloadFromGithub: "Скачать с GitHub",
     whatsNew: "Что нового",
     dismiss: "Позже",
     notesTitle: "Что нового в версии {{version}}",
@@ -224,5 +221,7 @@ export default {
     savePasswordWarning: "Пароль будет сохранён на вашем локальном компьютере в зашифрованном виде. Никто другой не сможет прочитать его без доступа к вашей учётной записи ОС. Вы уверены?",
     savePasswordConfirm: "Да, сохранить",
     savePasswordDecline: "Не сохранять",
+    passwordWillBeAsked: "Пароль будет запрошен при каждом подключении. Там же можно выбрать сохранить его или нет.",
+    privateKeyHint: "Ключ хранится в зашифрованном виде на этом компьютере.",
   },
 };
