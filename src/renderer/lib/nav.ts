@@ -6,6 +6,7 @@ import {
   Globe,
   Gauge,
   KeyRound,
+  Terminal,
   Settings,
   type LucideIcon
 } from 'lucide-react'
@@ -18,6 +19,7 @@ export type ModuleId =
   | 'dns'
   | 'speedtest'
   | 'password'
+  | 'ssh'
   | 'settings'
 
 export interface NavItem {
@@ -34,11 +36,12 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'pingport', labelKey: 'pingport', icon: Network },
   { id: 'dns', labelKey: 'dns', icon: Globe },
   { id: 'speedtest', labelKey: 'speedtest', icon: Gauge },
-  { id: 'password', labelKey: 'password', icon: KeyRound }
+  { id: 'password', labelKey: 'password', icon: KeyRound },
+  { id: 'ssh', labelKey: 'ssh', icon: Terminal },
 ]
 
 export const SETTINGS_ITEM: NavItem = {
   id: 'settings',
   labelKey: 'settings',
-  icon: Settings
+  icon: Settings,
 }

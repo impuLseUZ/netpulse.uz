@@ -49,13 +49,34 @@ export const CHANNELS = {
   netinfo: {
     getAddresses: "netinfo:getAddresses",
   },
-
   updater: {
     getState: "updater:getState",
     check: "updater:check",
     download: "updater:download",
     quitAndInstall: "updater:quitAndInstall",
     stateEvent: "updater:state",
+  },
+
+  /** ── SSH-клиент (Модуль 8) ── */
+  ssh: {
+    /** Получить все профили (без паролей/ключей). */
+    listProfiles: "ssh:listProfiles",
+    /** Сохранить профиль (create или update по id). */
+    saveProfile: "ssh:saveProfile",
+    /** Удалить профиль по id. */
+    deleteProfile: "ssh:deleteProfile",
+    /** Открыть SSH-сессию. */
+    connect: "ssh:connect",
+    /** Закрыть SSH-сессию. */
+    disconnect: "ssh:disconnect",
+    /** Передать нажатия клавиш в PTY. */
+    input: "ssh:input",
+    /** Сообщить PTY о новом размере терминала (cols x rows). */
+    resize: "ssh:resize",
+    /** Push main → renderer: данные из PTY. */
+    dataEvent: "ssh:data",
+    /** Push main → renderer: изменение статуса сессии. */
+    statusEvent: "ssh:status",
   },
 } as const;
 
@@ -69,4 +90,5 @@ export type ChannelName =
   | (typeof CHANNELS.tracer)[keyof typeof CHANNELS.tracer]
   | (typeof CHANNELS.speedtest)[keyof typeof CHANNELS.speedtest]
   | (typeof CHANNELS.netinfo)[keyof typeof CHANNELS.netinfo]
-  | (typeof CHANNELS.updater)[keyof typeof CHANNELS.updater];
+  | (typeof CHANNELS.updater)[keyof typeof CHANNELS.updater]
+  | (typeof CHANNELS.ssh)[keyof typeof CHANNELS.ssh];

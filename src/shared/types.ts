@@ -20,7 +20,7 @@ export interface IpcError {
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 /** Языки интерфейса. */
-export type Locale = 'ru' | 'en'
+export type Locale = 'ru' | 'en' | 'uz'
 
 /** Сохраняемые настройки приложения (electron-store). */
 export interface AppSettings {
@@ -58,13 +58,13 @@ export interface PlatformInfo {
 
 /** Стадия процесса обновления для отображения в UI. */
 export type UpdateStatus =
-  | 'idle' // ничего не происходит
-  | 'checking' // идёт проверка
-  | 'available' // найдена новая версия
-  | 'not-available' // обновлений нет
-  | 'downloading' // идёт загрузка
-  | 'downloaded' // загружено, готово к установке
-  | 'error' // ошибка (обрабатывается тихо)
+  | 'idle'         // ничего не происходит
+  | 'checking'     // идёт проверка
+  | 'available'    // найдена новая версия
+  | 'not-available'// обновлений нет
+  | 'downloading'  // идёт загрузка
+  | 'downloaded'   // загружено, готово к установке
+  | 'error'        // ошибка (обрабатывается тихо)
 
 export interface UpdateInfo {
   version: string

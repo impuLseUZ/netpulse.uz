@@ -14,6 +14,7 @@ import { ScannerPage } from '@/pages/ScannerPage'
 import { TracerPage } from '@/pages/TracerPage'
 import { SpeedtestPage } from '@/pages/SpeedtestPage'
 import { PasswordPage } from '@/pages/PasswordPage'
+import { SshPage } from '@/pages/SshPage'
 
 export function App(): JSX.Element {
   const initApp = useAppStore((s) => s.init)
@@ -45,6 +46,7 @@ export function App(): JSX.Element {
     if (active === 'tracer') return <TracerPage />
     if (active === 'speedtest') return <SpeedtestPage />
     if (active === 'password') return <PasswordPage />
+    if (active === 'ssh') return <SshPage />
     // Пока все функциональные модули — заглушки. Будут заменяться по очереди.
     return <ModulePlaceholder titleKey={item.labelKey} icon={item.icon} />
   }

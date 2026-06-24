@@ -14,7 +14,11 @@ export default defineConfig({
     build: {
       outDir: 'out/main',
       rollupOptions: {
-        input: { index: resolve(__dirname, 'src/main/index.ts') }
+        input: { index: resolve(__dirname, 'src/main/index.ts') },
+        // ssh2 тянет нативный модуль cpu-features (.node) — Rollup не умеет
+        // его бандлить, поэтому объявляем всю цепочку внешней.
+        // electron-vite копирует node_modules в out/ при сборке.
+        external: ['ssh2', 'cpu-features']
       }
     }
   },

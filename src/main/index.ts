@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { registerAllIpc } from './ipc'
 import { maybeCheckOnStart } from './services/updater'
 import { stopAllContinuous } from './services/ping'
+import { disconnectAll as disconnectAllSsh } from './services/ssh'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -55,5 +56,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   // Останавливаем непрерывные ping-сессии, чтобы не висели таймеры.
   stopAllContinuous()
+  // Закрываем все SSH-сессии.
+  disconnectAllSsh()
   if (process.platform !== 'darwin') app.quit()
 })

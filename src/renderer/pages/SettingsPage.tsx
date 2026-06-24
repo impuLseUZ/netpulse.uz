@@ -12,7 +12,7 @@ export function SettingsPage(): JSX.Element {
   const updater = useUpdaterStore()
 
   const themes: ThemeMode[] = ['light', 'dark', 'system']
-  const locales: Locale[] = ['ru', 'en']
+  const locales: Locale[] = ['ru', 'en', 'uz']
 
   const updateStatusText = (): string => {
     switch (updater.state.status) {
@@ -62,7 +62,7 @@ export function SettingsPage(): JSX.Element {
                 active={settings.locale === lc}
                 onClick={() => void update({ locale: lc })}
               >
-                {lc.toUpperCase()}
+                {{ ru: 'Русский', en: 'English', uz: "O'zbekcha" }[lc]}
               </Choice>
             ))}
           </div>
@@ -198,7 +198,7 @@ function Toggle({
     <button
       onClick={() => onChange(!value)}
       className={[
-        'relative w-11 h-6 rounded-full transition-colors',
+        'relative w-11 h-6 rounded-full transition-colors shrink-0',
         value ? 'bg-accent' : 'bg-surface-2 border border-border'
       ].join(' ')}
       role="switch"
@@ -206,8 +206,8 @@ function Toggle({
     >
       <span
         className={[
-          'absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform',
-          value ? 'translate-x-5' : 'translate-x-0.5'
+          'absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200',
+          value ? 'translate-x-[22px] bg-white' : 'translate-x-0 bg-white/80'
         ].join(' ')}
       />
     </button>

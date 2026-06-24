@@ -34,6 +34,16 @@ import {
 } from "@shared/trace-types";
 import { NetworkInfo } from "@shared/speedtest-types";
 import { NetAddresses } from "@shared/netinfo-types";
+import {
+  SshProfile,
+  SshProfilePublic,
+  SshConnectQuery,
+  SshResizeQuery,
+  SshInputQuery,
+  SshDataEvent,
+  SshStatusEvent,
+} from "@shared/ssh-types";
+
 /**
  * Единственный мост renderer <-> main.
  * nodeIntegration выключен; renderer не видит ipcRenderer напрямую.
@@ -118,14 +128,17 @@ const api = {
         ipcRenderer.removeListener(CHANNELS.tracer.sampleEvent, listener);
     },
   },
+
   speedtest: {
     getNetworkInfo: (): Promise<IpcResult<NetworkInfo>> =>
       ipcRenderer.invoke(CHANNELS.speedtest.getNetworkInfo),
   },
+
   netinfo: {
     getAddresses: (): Promise<IpcResult<NetAddresses>> =>
       ipcRenderer.invoke(CHANNELS.netinfo.getAddresses),
   },
+
   updater: {
     getState: (): Promise<IpcResult<UpdateState>> =>
       ipcRenderer.invoke(CHANNELS.updater.getState),
@@ -141,6 +154,47 @@ const api = {
       ipcRenderer.on(CHANNELS.updater.stateEvent, listener);
       return () =>
         ipcRenderer.removeListener(CHANNELS.updater.stateEvent, listener);
+    },
+  },
+
+  /** ── SSH-клиент (Модуль 8) ── */
+  ssh: {
+    listProfiles: (): Promise<IpcResult<SshProfilePublic[]>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.listProfiles),
+
+    saveProfile: (profile: SshProfile): Promise<IpcResult<SshProfilePublic>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.saveProfile, profile),
+
+    deleteProfile: (id: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.deleteProfile, { id }),
+
+    connect: (query: SshConnectQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.connect, query),
+
+    disconnect: (sessionId: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.disconnect, { sessionId }),
+
+    input: (query: SshInputQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.input, query),
+
+    resize: (query: SshResizeQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.ssh.resize, query),
+
+    /** Подписка на данные PTY. Возвращает функцию отписки. */
+    onData: (cb: (ev: SshDataEvent) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: SshDataEvent): void => cb(ev);
+      ipcRenderer.on(CHANNELS.ssh.dataEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.ssh.dataEvent, listener);
+    },
+
+    /** Подписка на изменения статуса сессии. Возвращает функцию отписки. */
+    onStatus: (cb: (ev: SshStatusEvent) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: SshStatusEvent): void =>
+        cb(ev);
+      ipcRenderer.on(CHANNELS.ssh.statusEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.ssh.statusEvent, listener);
     },
   },
 };
