@@ -10,6 +10,7 @@ export default {
     pingport: "Ping + Port",
     dns: "DNS Lookup",
     speedtest: "Speedtest",
+    password: "Генератор паролей",
     settings: "Настройки",
   },
   common: {
@@ -162,6 +163,25 @@ export default {
       upload: "Измерение отдачи…",
       done: "Тест завершён",
       error: "Ошибка теста",
+    },
+  },
+  password: {
+    digits: "Цифры (0-9)",
+    lowercase: "Строчные буквы (a-z)",
+    uppercase: "Заглавные буквы (A-Z)",
+    symbols: "Спецсимволы (!@#$…)",
+    excludeSimilar: "Исключить похожие (0/O, 1/l/I)",
+    length: "Длина",
+    strength: "Стойкость",
+    bits: "бит",
+    copy: "Копировать",
+    regenerate: "Сгенерировать заново",
+    noSet: "Выберите хотя бы один набор символов",
+    level: {
+      weak: "Слабый",
+      fair: "Средний",
+      good: "Хороший",
+      strong: "Надёжный",
     },
   },
 };

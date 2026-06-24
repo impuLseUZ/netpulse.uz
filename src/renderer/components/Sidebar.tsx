@@ -16,9 +16,18 @@ export function Sidebar(): JSX.Element {
 
   useEffect(() => {
     let alive = true
-    void window.netpulse.netinfo.getAddresses().then((res: IpcResult<NetAddresses>) => {
-      if (alive && res.ok) setAddr(res.data)
-    })
+    // Защита: если bridge без netinfo (несовпадение версий preload),
+    // не роняем весь UI — просто не показываем адреса.
+    const api = window.netpulse?.netinfo
+    if (!api?.getAddresses) return
+    void api
+      .getAddresses()
+      .then((res: IpcResult<NetAddresses>) => {
+        if (alive && res.ok) setAddr(res.data)
+      })
+      .catch(() => {
+        /* недоступно — оставляем шапку без IP */
+      })
     return () => {
       alive = false
     }

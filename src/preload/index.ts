@@ -33,6 +33,7 @@ import {
   TraceStartQuery,
 } from "@shared/trace-types";
 import { NetworkInfo } from "@shared/speedtest-types";
+import { NetAddresses } from "@shared/netinfo-types";
 /**
  * Единственный мост renderer <-> main.
  * nodeIntegration выключен; renderer не видит ipcRenderer напрямую.
@@ -120,6 +121,10 @@ const api = {
   speedtest: {
     getNetworkInfo: (): Promise<IpcResult<NetworkInfo>> =>
       ipcRenderer.invoke(CHANNELS.speedtest.getNetworkInfo),
+  },
+  netinfo: {
+    getAddresses: (): Promise<IpcResult<NetAddresses>> =>
+      ipcRenderer.invoke(CHANNELS.netinfo.getAddresses),
   },
   updater: {
     getState: (): Promise<IpcResult<UpdateState>> =>

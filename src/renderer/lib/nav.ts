@@ -5,6 +5,7 @@ import {
   Network,
   Globe,
   Gauge,
+  KeyRound,
   Settings,
   type LucideIcon
 } from 'lucide-react'
@@ -16,6 +17,7 @@ export type ModuleId =
   | 'pingport'
   | 'dns'
   | 'speedtest'
+  | 'password'
   | 'settings'
 
 export interface NavItem {
@@ -31,7 +33,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'ipcalc', labelKey: 'ipcalc', icon: Calculator },
   { id: 'pingport', labelKey: 'pingport', icon: Network },
   { id: 'dns', labelKey: 'dns', icon: Globe },
-  { id: 'speedtest', labelKey: 'speedtest', icon: Gauge }
+  { id: 'speedtest', labelKey: 'speedtest', icon: Gauge },
+  { id: 'password', labelKey: 'password', icon: KeyRound }
 ]
 
 export const SETTINGS_ITEM: NavItem = {
