@@ -1,7 +1,7 @@
 export default {
   app: {
     name: "NetPulse",
-    tagline: "Tarmoq pulsini o‘lchang",
+    tagline: "Tarmoq pulsini o'lchang",
   },
   nav: {
     scanner: "Tarmoq skaneri",
@@ -152,14 +152,44 @@ export default {
     history: "O'tkazish tarixi",
     clear: "Tozalash",
     time: "Vaqt",
+    method: "Usul",
     detecting: "Manzil aniqlanmoqda…",
     noNetInfo: "Tashqi IP aniqlab bo'lmadi",
     phase: {
+      preflight: "Tarmoq tekshirilmoqda…",
       latency: "Kechikish o'lchanmoqda…",
       download: "Yuklab olish o'lchanmoqda…",
       upload: "Yuklash o'lchanmoqda…",
       done: "Test yakunlandi",
       error: "Test xatosi",
+    },
+    firewall: {
+      method_fallback: "HTTP o'lchov",
+      fallback_note: "⚡ Natijalar taxminiy (±15%) — to'liq test o'rniga HTTP o'lchov ishlatilmoqda.",
+      timing_blocked: {
+        title: "Xavfsizlik devori trafikni filtrlaydi (SSL tekshiruvi)",
+        body: "Xavfsizlik devoringiz (Kerio Control, FortiGate yoki o'xshashi) HTTPS'ni ushlab, tezlik ma'lumotlarini yashiryapti. Cloudflare testi bunday sharoitda noto'g'ri — avtomatik ravishda HTTP o'lchovga o'tilmoqda.",
+      },
+      cf_blocked: {
+        title: "Cloudflare serveri bloklangan",
+        body: "Xavfsizlik devori (Kerio Control, MikroTik yoki korporativ siyosat) speed.cloudflare.com'ni bloklamoqda. Internet ishlaydi — test muqobil serverlar orqali o'tkaziladi.",
+      },
+      ssl_error: {
+        title: "SSL sertifikat almashtirish aniqlandi (MITM)",
+        body: "Xavfsizlik devoringiz (Kerio Control, FortiGate) HTTPS trafikni shifrlayapti. Bu sharoitda tezlikni o'lchab bo'lmaydi. Tarmoq ma'muriga murojaat qiling.",
+      },
+      no_internet: {
+        title: "Internet aloqasi yo'q",
+        body: "Tarmoq ulanishingizni tekshiring va qayta urinib ko'ring.",
+      },
+      ok: {
+        title: "",
+        body: "",
+      },
+      unknown: {
+        title: "Nostandart tarmoq konfiguratsiyasi",
+        body: "Tarmoq cheklovlari aniqlandi. Test moslik rejimida o'tkaziladi.",
+      },
     },
   },
   password: {

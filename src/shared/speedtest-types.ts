@@ -1,11 +1,6 @@
 /**
  * Типы для модуля Speedtest (Модуль 6).
  * Общие между main (сервис сетевой информации) и renderer (UI замера).
- *
- * Сам замер скорости выполняется в renderer через @cloudflare/speedtest
- * (библиотека опирается на браузерные API: fetch / performance / WebRTC),
- * поэтому метрики замера через IPC НЕ проходят. Через IPC идёт только
- * внешний IP/ISP, которые удобнее получить из main.
  */
 
 /** Внешний IP и сведения о провайдере (для шапки модуля). */
@@ -20,35 +15,33 @@ export interface NetworkInfo {
   colo?: string
 }
 
-/** Фаза, в которой сейчас находится замер (для индикации в UI). */
+/** Фаза, в которой сейчас находится замер. */
 export type SpeedtestPhase =
   | 'idle'
-  | 'latency' // измерение пинга/джиттера
-  | 'download' // загрузка
-  | 'upload' // отдача
+  | 'preflight'  // диагностика сети перед замером
+  | 'latency'
+  | 'download'
+  | 'upload'
   | 'done'
   | 'error'
 
-/** Итоговые/промежуточные метрики замера. Значения нормализованы для UI. */
+/** Итоговые/промежуточные метрики замера. */
 export interface SpeedtestResult {
-  /** Скорость загрузки, Мбит/с. */
   downloadMbps?: number
-  /** Скорость отдачи, Мбит/с. */
   uploadMbps?: number
-  /** Латентность (ненагруженная), мс. */
   pingMs?: number
-  /** Джиттер, мс. */
   jitterMs?: number
 }
 
 /** Запись истории замеров (живёт только в текущей сессии renderer). */
 export interface SpeedtestHistoryEntry extends SpeedtestResult {
-  /** Уникальный id записи. */
   id: string
-  /** Время завершения замера (epoch ms). */
   timestamp: number
-  /** Внешний IP на момент замера. */
   ip?: string
-  /** Провайдер на момент замера. */
   isp?: string
+  /**
+   * true = замер выполнен через HTTP-fallback (за фаерволом).
+   * false/undefined = полный Cloudflare-тест.
+   */
+  isFallback?: boolean
 }

@@ -35,7 +35,6 @@ export default {
     version: "Version",
     updatesSection: "Updates",
     checkOnStart: "Check on startup",
-
   },
   update: {
     checking: "Checking for updates…",
@@ -153,14 +152,44 @@ export default {
     history: "History",
     clear: "Clear",
     time: "Time",
+    method: "Method",
     detecting: "Detecting address…",
     noNetInfo: "Could not detect external IP",
     phase: {
+      preflight: "Checking network…",
       latency: "Measuring latency…",
       download: "Measuring download…",
       upload: "Measuring upload…",
       done: "Test complete",
       error: "Test failed",
+    },
+    firewall: {
+      method_fallback: "HTTP measurement",
+      fallback_note: "⚡ Results are approximate (±15%) — HTTP measurement mode is active instead of a full test.",
+      timing_blocked: {
+        title: "Firewall is filtering traffic (SSL inspection)",
+        body: "Your firewall (Kerio Control, FortiGate or similar) is intercepting HTTPS and stripping speed metrics. The Cloudflare test would be inaccurate — switching to HTTP measurement automatically.",
+      },
+      cf_blocked: {
+        title: "Cloudflare server is blocked",
+        body: "Your firewall (Kerio Control, MikroTik or corporate policy) is blocking speed.cloudflare.com. Internet is working — the test will use alternative servers.",
+      },
+      ssl_error: {
+        title: "SSL certificate substitution detected (MITM)",
+        body: "Your firewall (Kerio Control, FortiGate) is decrypting HTTPS traffic. Speed measurement is not possible under these conditions. Contact your network administrator.",
+      },
+      no_internet: {
+        title: "No internet connection",
+        body: "Check your network connection and try again.",
+      },
+      ok: {
+        title: "",
+        body: "",
+      },
+      unknown: {
+        title: "Non-standard network configuration",
+        body: "Network restrictions detected. The test will run in compatibility mode.",
+      },
     },
   },
   password: {

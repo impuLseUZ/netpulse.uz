@@ -5,7 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://speed.cloudflare.com https://*.speed.cloudflare.com"
+      content="
+        default-src 'self';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data:;
+        connect-src
+          'self'
+          https://speed.cloudflare.com
+          https://*.speed.cloudflare.com
+          https://www.google.com
+          https://1.1.1.1
+          https://8.8.8.8
+          https://ajax.googleapis.com
+          https://cdn.jsdelivr.net
+          https://httpbin.org
+          https://api.ipify.org
+          http://ip-api.com
+      "
     />
     <title>NetPulse</title>
   </head>
