@@ -10,6 +10,7 @@ import { registerTracerIpc } from './tracer'
 import { registerSpeedtestIpc } from './speedtest'
 import { registerNetinfoIpc } from './netinfo'
 import { registerSshIpc } from './ssh'
+import { registerSftpIpc } from './sftp'
 
 export function registerAllIpc(): void {
   registerAppIpc()
@@ -21,4 +22,5 @@ export function registerAllIpc(): void {
   registerSpeedtestIpc()
   registerNetinfoIpc()
   registerSshIpc()
+  registerSftpIpc()
 }

@@ -42,6 +42,17 @@ import {
   SshInputQuery,
   SshDataEvent,
   SshStatusEvent,
+  SftpListQuery,
+  SftpListResult,
+  SftpDownloadQuery,
+  SftpUploadQuery,
+  SftpMkdirQuery,
+  SftpRenameQuery,
+  SftpDeleteQuery,
+  SftpProgressEvent,
+  LocalListQuery,
+  LocalListResult,
+  SftpTransferQuery,
 } from "@shared/ssh-types";
 
 /**
@@ -195,6 +206,49 @@ const api = {
       ipcRenderer.on(CHANNELS.ssh.statusEvent, listener);
       return () =>
         ipcRenderer.removeListener(CHANNELS.ssh.statusEvent, listener);
+    },
+  },
+
+  /** ── SFTP файловый менеджер (Модуль 8.2) ── */
+  sftp: {
+    open: (sessionId: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.open, { sessionId }),
+
+    close: (sessionId: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.close, { sessionId }),
+
+    list: (query: SftpListQuery): Promise<IpcResult<SftpListResult>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.list, query),
+
+    download: (query: SftpDownloadQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.download, query),
+
+    upload: (query: SftpUploadQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.upload, query),
+
+    mkdir: (query: SftpMkdirQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.mkdir, query),
+
+    rename: (query: SftpRenameQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.rename, query),
+
+    delete: (query: SftpDeleteQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.delete, query),
+
+    localList: (query: LocalListQuery & { getHome?: boolean }): Promise<IpcResult<LocalListResult>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.localList, query),
+
+    transferToRemote: (query: SftpTransferQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.transferToRemote, query),
+
+    transferToLocal: (query: SftpTransferQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.transferToLocal, query),
+
+    onProgress: (cb: (ev: SftpProgressEvent) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: SftpProgressEvent): void => cb(ev);
+      ipcRenderer.on(CHANNELS.sftp.progressEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.sftp.progressEvent, listener);
     },
   },
 };

@@ -95,3 +95,114 @@ export interface SshSession {
   status: SshSessionStatus
   error?: string
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// SFTP (Модуль 8.2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Запись файловой системы — файл или директория. */
+export interface SftpEntry {
+  name: string
+  /** Полный абсолютный путь. */
+  path: string
+  isDirectory: boolean
+  /** Размер в байтах. */
+  size: number
+  /** Время последнего изменения (ms since epoch). */
+  modifiedAt: number
+  /** Unix-права в числовом виде (например 33188 = rw-r--r--). */
+  mode: number
+  /** Строковое представление прав (например -rw-r--r--). */
+  permissions: string
+}
+
+/** Запрос на листинг директории. */
+export interface SftpListQuery {
+  sessionId: string
+  remotePath: string
+}
+
+/** Ответ на листинг. */
+export interface SftpListResult {
+  path: string
+  entries: SftpEntry[]
+}
+
+/** Запрос на скачивание файла. */
+export interface SftpDownloadQuery {
+  sessionId: string
+  remotePath: string
+  /** Локальный путь назначения (выбирается диалогом на стороне main). */
+  localPath: string
+}
+
+/** Запрос на загрузку файла. */
+export interface SftpUploadQuery {
+  sessionId: string
+  /** Локальный путь источника. */
+  localPath: string
+  remotePath: string
+}
+
+/** Запрос на создание директории. */
+export interface SftpMkdirQuery {
+  sessionId: string
+  remotePath: string
+}
+
+/** Запрос на переименование/перемещение. */
+export interface SftpRenameQuery {
+  sessionId: string
+  oldPath: string
+  newPath: string
+}
+
+/** Запрос на удаление файла или директории. */
+export interface SftpDeleteQuery {
+  sessionId: string
+  remotePath: string
+  isDirectory: boolean
+}
+
+/** Push-событие main → renderer: прогресс передачи файла. */
+export interface SftpProgressEvent {
+  sessionId: string
+  /** Уникальный id операции. */
+  transferId: string
+  /** 'upload' или 'download'. */
+  direction: 'upload' | 'download'
+  filename: string
+  transferred: number
+  total: number
+}
+
+/** Запись локальной файловой системы (левая панель). */
+export interface LocalEntry {
+  name: string
+  path: string
+  isDirectory: boolean
+  size: number
+  modifiedAt: number
+  kind: string
+}
+
+/** Результат листинга локальной ФС. */
+export interface LocalListResult {
+  path: string
+  entries: LocalEntry[]
+  drives?: string[]  // Windows: список дисков
+}
+
+/** Запрос листинга локальной ФС. */
+export interface LocalListQuery {
+  localPath: string
+  showHidden: boolean
+}
+
+/** Запрос передачи файлов local ↔ remote. */
+export interface SftpTransferQuery {
+  sessionId: string
+  localPath: string
+  remotePath: string
+  /** 'upload' = local→remote, 'download' = remote→local */
+  direction: 'upload' | 'download'
+}

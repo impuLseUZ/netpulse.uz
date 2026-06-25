@@ -78,6 +78,36 @@ export const CHANNELS = {
     /** Push main → renderer: изменение статуса сессии. */
     statusEvent: "ssh:status",
   },
+
+  /** ── SFTP файловый менеджер (Модуль 8.2) ── */
+  sftp: {
+    /** Открыть SFTP-сессию для уже подключённого SSH-клиента. */
+    open: "sftp:open",
+    /** Закрыть SFTP-сессию. */
+    close: "sftp:close",
+    /** Листинг директории. */
+    list: "sftp:list",
+    /** Скачать файл (remote → local). Открывает диалог сохранения. */
+    download: "sftp:download",
+    /** Загрузить файл (local → remote). Открывает диалог выбора файла. */
+    upload: "sftp:upload",
+    /** Создать директорию. */
+    mkdir: "sftp:mkdir",
+    /** Переименовать / переместить. */
+    rename: "sftp:rename",
+    /** Удалить файл или директорию. */
+    delete: "sftp:delete",
+    /** Push main → renderer: прогресс передачи файла. */
+    progressEvent: "sftp:progress",
+    /** Список файлов локальной ФС (для левой панели). */
+    localList: "sftp:localList",
+    /** Открыть файл/папку через shell.openPath. */
+    localOpen: "sftp:localOpen",
+    /** Перенести файл local → remote (drag & drop / кнопка). */
+    transferToRemote: "sftp:transferToRemote",
+    /** Перенести файл remote → local (кнопка Download). */
+    transferToLocal: "sftp:transferToLocal",
+  },
 } as const;
 
 /** Тип всех строковых значений каналов — для типобезопасности в bridge. */
@@ -91,4 +121,5 @@ export type ChannelName =
   | (typeof CHANNELS.speedtest)[keyof typeof CHANNELS.speedtest]
   | (typeof CHANNELS.netinfo)[keyof typeof CHANNELS.netinfo]
   | (typeof CHANNELS.updater)[keyof typeof CHANNELS.updater]
-  | (typeof CHANNELS.ssh)[keyof typeof CHANNELS.ssh];
+  | (typeof CHANNELS.ssh)[keyof typeof CHANNELS.ssh]
+  | (typeof CHANNELS.sftp)[keyof typeof CHANNELS.sftp];

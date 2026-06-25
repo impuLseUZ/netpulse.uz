@@ -12,6 +12,7 @@
  */
 import { safeStorage } from 'electron'
 import { Client, ConnectConfig } from 'ssh2'
+import { registerSshClient, unregisterSshClient } from './sftp'
 import type {
   SshProfile,
   SshProfilePublic,
@@ -141,6 +142,7 @@ export function connect(
 
   const client = new Client()
   sessions.set(sessionId, { client, channel: null })
+  registerSshClient(sessionId, client)
 
   const cfg: ConnectConfig = {
     host: profile.host,
@@ -190,6 +192,7 @@ export function connect(
 
         stream.on('close', () => {
           onStatus({ sessionId, status: 'disconnected' })
+          unregisterSshClient(sessionId)
           sessions.delete(sessionId)
         })
       }
@@ -198,6 +201,7 @@ export function connect(
 
   client.on('error', (err) => {
     onStatus({ sessionId, status: 'error', error: err.message })
+    unregisterSshClient(sessionId)
     sessions.delete(sessionId)
   })
 

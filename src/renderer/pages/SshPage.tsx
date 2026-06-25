@@ -1,46 +1,37 @@
 /**
- * SshPage — главная страница SSH-клиента (Модуль 8).
+ * SshPage — SSH-клиент + SFTP файловый менеджер (Модуль 8).
  *
- * Макет:
- *  ┌─────────────────────────────────────────────────────┐
- *  │  Список профилей (левая панель, 220px)              │
- *  │  ┌──────────────────────────────────────────────┐   │
- *  │  │  Вкладки активных сессий                     │   │
- *  │  │  ┌────────────────────────────────────────┐  │   │
- *  │  │  │  xterm.js терминал                     │  │   │
- *  │  │  └────────────────────────────────────────┘  │   │
- *  │  └──────────────────────────────────────────────┘   │
- *  └─────────────────────────────────────────────────────┘
+ * Макет (как в Termius):
+ *  ┌──────────────────────────────────────────────────────────┐
+ *  │ [Tab1 ×] [Tab2 ×]  …  вкладки сессий                   │
+ *  ├────────────────────────────────────────────────────────  │
+ *  │ Профили  │  [Terminal] [Files]  ←── переключатель вида  │
+ *  │ (панель) │  ─────────────────────────────────────────── │
+ *  │          │  xterm.js / SftpBrowser                      │
+ *  └──────────────────────────────────────────────────────────┘
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Plus,
-  Terminal,
-  Trash2,
-  Edit2,
-  Wifi,
-  WifiOff,
-  Loader,
-  X,
-  ServerCrash,
+  Plus, Terminal, Trash2, Edit2, Wifi, WifiOff,
+  Loader, X, ServerCrash, FolderOpen,
 } from 'lucide-react'
 import { useSshStore } from '@/store/ssh'
 import { SshTerminal } from '@/components/SshTerminal'
+import { SftpBrowser } from '@/components/SftpBrowser'
 import { SshProfileForm } from '@/components/SshProfileForm'
 import { SshPasswordPrompt, type PasswordConnectResult } from '@/components/SshPasswordPrompt'
 import type { SshProfile, SshProfilePublic, SshSessionStatus } from '@shared/ssh-types'
 
-// ── Иконка статуса сессии ────────────────────────────────────────────────────
+type SessionView = 'terminal' | 'sftp'
+
+// ── Иконка статуса ──────────────────────────────────────────────────────────
 
 function StatusIcon({ status }: { status: SshSessionStatus }): JSX.Element {
-  if (status === 'connecting')
-    return <Loader size={12} className="text-yellow-400 animate-spin" />
-  if (status === 'connected')
-    return <Wifi size={12} className="text-ok" />
-  if (status === 'error')
-    return <ServerCrash size={12} className="text-error" />
-  return <WifiOff size={12} className="text-muted" />
+  if (status === 'connecting') return <Loader size={11} className="text-warn animate-spin" />
+  if (status === 'connected')  return <Wifi size={11} className="text-ok" />
+  if (status === 'error')      return <ServerCrash size={11} className="text-danger" />
+  return <WifiOff size={11} className="text-muted" />
 }
 
 // ── Основная страница ────────────────────────────────────────────────────────
@@ -48,38 +39,30 @@ function StatusIcon({ status }: { status: SshSessionStatus }): JSX.Element {
 export function SshPage(): JSX.Element {
   const { t } = useTranslation()
   const {
-    profiles,
-    sessions,
-    activeSessionId,
-    loadProfiles,
-    openSession,
-    closeSession,
-    setActiveSession,
+    profiles, sessions, activeSessionId,
+    loadProfiles, openSession, closeSession, setActiveSession,
   } = useSshStore()
 
-  // Модальные состояния.
-  const [showForm, setShowForm] = useState(false)
-  const [editProfile, setEditProfile] = useState<Partial<SshProfile> | null>(null)
+  const [showForm, setShowForm]         = useState(false)
+  const [editProfile, setEditProfile]   = useState<Partial<SshProfile> | null>(null)
   const [promptProfile, setPromptProfile] = useState<SshProfilePublic | null>(null)
+  // Вид для каждой сессии: терминал или SFTP.
+  const [sessionViews, setSessionViews] = useState<Record<string, SessionView>>({})
 
-  useEffect(() => {
-    void loadProfiles()
-  }, [loadProfiles])
+  useEffect(() => { void loadProfiles() }, [loadProfiles])
 
-  // ── Обработчики профилей ──────────────────────────────────────────────────
+  const getView = (sessionId: string): SessionView => sessionViews[sessionId] ?? 'terminal'
+  const setView = (sessionId: string, view: SessionView): void =>
+    setSessionViews((prev) => ({ ...prev, [sessionId]: view }))
 
-  const handleNewProfile = (): void => {
-    setEditProfile(null)
-    setShowForm(true)
-  }
+  // ── Профили ──────────────────────────────────────────────────────────────
 
-  const handleEditProfile = (profile: SshProfilePublic): void => {
-    setEditProfile(profile)
-    setShowForm(true)
-  }
+  const handleNewProfile = (): void => { setEditProfile(null); setShowForm(true) }
 
-  const handleSaveProfile = async (profile: SshProfile): Promise<void> => {
-    await window.netpulse.ssh.saveProfile(profile)
+  const handleEditProfile = (p: SshProfilePublic): void => { setEditProfile(p); setShowForm(true) }
+
+  const handleSaveProfile = async (p: SshProfile): Promise<void> => {
+    await window.netpulse.ssh.saveProfile(p)
     await loadProfiles()
     setShowForm(false)
     setEditProfile(null)
@@ -93,74 +76,73 @@ export function SshPage(): JSX.Element {
   // ── Подключение ───────────────────────────────────────────────────────────
 
   const handleConnect = (profile: SshProfilePublic): void => {
-    // Пароль уже сохранён в профиле — подключаемся без диалога.
-    if (profile.hasPassword) {
+    if (profile.hasPassword || profile.authType === 'key') {
       void openSession(profile.id)
-      return
+    } else {
+      setPromptProfile(profile)
     }
-    // Key auth без passphrase — тоже без диалога.
-    if (profile.authType === 'key') {
-      void openSession(profile.id)
-      return
-    }
-    // Пароль не сохранён — показываем запрос.
-    setPromptProfile(profile)
   }
 
   const handlePasswordConnect = (result: PasswordConnectResult): void => {
     if (!promptProfile) return
     const { password, save } = result
-    // Если пользователь выбрал «Сохранить пароль» — обновляем профиль.
     if (save) {
-      void window.netpulse.ssh.saveProfile({
-        ...promptProfile,
-        password,
-      }).then(() => loadProfiles())
+      void window.netpulse.ssh.saveProfile({ ...promptProfile, password })
+        .then(() => loadProfiles())
     }
     void openSession(promptProfile.id, password)
     setPromptProfile(null)
   }
 
+  // ── Активная сессия ───────────────────────────────────────────────────────
+
+  const activeSess = sessions.find((s) => s.sessionId === activeSessionId)
+  const activeView = activeSessionId ? getView(activeSessionId) : 'terminal'
+
   // ── Рендер ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Вкладки сессий */}
+    <div className="h-full flex flex-col overflow-hidden">
+
+      {/* ── Строка вкладок сессий ── */}
       {sessions.length > 0 && (
-        <div className="flex items-center gap-0.5 px-2 pt-2 bg-surface border-b border-border shrink-0 overflow-x-auto">
-          {sessions.map((sess) => (
-            <div
-              key={sess.sessionId}
-              onClick={() => setActiveSession(sess.sessionId)}
-              className={[
-                'flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs cursor-pointer select-none whitespace-nowrap transition-colors',
-                sess.sessionId === activeSessionId
-                  ? 'bg-bg text-fg border border-b-bg border-border'
-                  : 'text-muted hover:text-fg hover:bg-surface-2',
-              ].join(' ')}
-            >
-              <StatusIcon status={sess.status} />
-              <span className="max-w-[140px] truncate">{sess.label}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  void closeSession(sess.sessionId)
-                }}
-                className="ml-1 text-muted hover:text-error transition-colors"
+        <div className="flex items-end gap-0 pl-2 pr-1 pt-1.5 bg-surface border-b border-border shrink-0 overflow-x-auto">
+          {sessions.map((sess) => {
+            const isActive = sess.sessionId === activeSessionId
+            return (
+              <div
+                key={sess.sessionId}
+                onClick={() => setActiveSession(sess.sessionId)}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer select-none',
+                  'whitespace-nowrap border border-b-0 rounded-t-md transition-all',
+                  isActive
+                    ? 'bg-bg text-fg border-border -mb-px z-10'
+                    : 'bg-surface-2 text-muted border-transparent hover:text-fg hover:bg-surface',
+                ].join(' ')}
               >
-                <X size={11} />
-              </button>
-            </div>
-          ))}
+                <StatusIcon status={sess.status} />
+                <span className="max-w-[120px] truncate">{sess.label}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); void closeSession(sess.sessionId) }}
+                  className="ml-0.5 text-muted hover:text-danger transition-colors"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* Основной контент */}
+      {/* ── Основной контент ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* ── Левая панель: список профилей ── */}
+
+        {/* ── Левая панель — профили ── */}
         <aside className="w-56 shrink-0 bg-surface border-r border-border flex flex-col">
-          <div className="flex items-center justify-between px-3 py-3 border-b border-border">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wider">
+          {/* Заголовок */}
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
+            <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
               {t('ssh.profiles')}
             </span>
             <button
@@ -168,136 +150,208 @@ export function SshPage(): JSX.Element {
               title={t('ssh.newProfile')}
               className="text-muted hover:text-fg transition-colors"
             >
-              <Plus size={16} />
+              <Plus size={15} />
             </button>
           </div>
 
+          {/* Список профилей */}
           <div className="flex-1 overflow-y-auto py-1">
             {profiles.length === 0 && (
-              <p className="text-xs text-muted px-3 py-4 text-center">
-                {t('ssh.noProfiles')}
-              </p>
-            )}
-            {profiles.map((p) => (
-              <div
-                key={p.id}
-                className="group flex items-center gap-2 px-3 py-2 hover:bg-surface-2 cursor-pointer"
-                onDoubleClick={() => handleConnect(p)}
-              >
-                <Terminal size={14} className="text-accent shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-fg truncate">{p.label}</p>
-                  <p className="text-[11px] text-muted truncate">
-                    {p.username}@{p.host}:{p.port}
-                  </p>
-                </div>
-                {/* Кнопки редактирования/удаления — видны при ховере */}
-                <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity shrink-0">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleEditProfile(p)
-                    }}
-                    className="text-muted hover:text-fg transition-colors"
-                    title={t('ssh.editProfile')}
-                  >
-                    <Edit2 size={13} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      void handleDeleteProfile(p.id)
-                    }}
-                    className="text-muted hover:text-error transition-colors"
-                    title={t('ssh.deleteProfile')}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+              <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+                <Terminal size={24} className="text-muted/40" strokeWidth={1.5} />
+                <p className="text-xs text-muted">{t('ssh.noProfiles')}</p>
+                <button
+                  onClick={handleNewProfile}
+                  className="text-xs text-accent hover:underline"
+                >
+                  {t('ssh.newProfile')}
+                </button>
               </div>
-            ))}
+            )}
+            {profiles.map((p) => {
+              const isConnected = sessions.some(
+                (s) => s.profileId === p.id && s.status === 'connected'
+              )
+              return (
+                <div
+                  key={p.id}
+                  className="group flex items-center gap-2 px-3 py-2 hover:bg-surface-2 cursor-pointer"
+                  onDoubleClick={() => handleConnect(p)}
+                >
+                  {/* Индикатор активного соединения */}
+                  <div className={[
+                    'w-1.5 h-1.5 rounded-full shrink-0 transition-colors',
+                    isConnected ? 'bg-ok' : 'bg-border',
+                  ].join(' ')} />
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-fg truncate font-medium">{p.label}</p>
+                    <p className="text-[11px] text-muted truncate">
+                      {p.username}@{p.host}:{p.port}
+                    </p>
+                  </div>
+
+                  {/* Кнопки — при ховере */}
+                  <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEditProfile(p) }}
+                      className="text-muted hover:text-fg transition-colors"
+                      title={t('ssh.editProfile')}
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); void handleDeleteProfile(p.id) }}
+                      className="text-muted hover:text-danger transition-colors"
+                      title={t('ssh.deleteProfile')}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
-          {/* Подсказка двойного клика */}
           {profiles.length > 0 && (
-            <p className="text-[10px] text-muted px-3 py-2 border-t border-border">
+            <p className="text-[10px] text-muted/60 px-3 py-2 border-t border-border">
               {t('ssh.doubleClickHint')}
             </p>
           )}
         </aside>
 
-        {/* ── Правая часть: терминалы ── */}
-        <div className="flex-1 bg-[#0b0e14] relative overflow-hidden">
-          {sessions.length === 0 ? (
-            /* Экран приветствия */
-            <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-8">
-              <Terminal size={40} className="text-muted" strokeWidth={1.5} />
-              <div>
-                <p className="text-fg font-medium">{t('ssh.welcome')}</p>
-                <p className="text-sm text-muted mt-1">{t('ssh.welcomeHint')}</p>
-              </div>
+        {/* ── Правая часть: терминал / SFTP ── */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+
+          {/* Переключатель Terminal / Files — только когда есть активная подключённая сессия */}
+          {activeSess && activeSess.status === 'connected' && (
+            <div className="flex items-center gap-0 px-3 py-1.5 bg-surface border-b border-border shrink-0">
               <button
-                onClick={handleNewProfile}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-fg text-sm hover:opacity-90 transition-opacity"
+                onClick={() => setView(activeSess.sessionId, 'terminal')}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors',
+                  activeView === 'terminal'
+                    ? 'bg-accent text-accent-fg'
+                    : 'text-muted hover:text-fg hover:bg-surface-2',
+                ].join(' ')}
               >
-                <Plus size={15} />
-                {t('ssh.newProfile')}
+                <Terminal size={13} />
+                {t('ssh.viewTerminal')}
               </button>
-            </div>
-          ) : (
-            /* Монтируем все терминалы, показываем только активный */
-            sessions.map((sess) => (
-              <div
-                key={sess.sessionId}
-                className="absolute inset-0"
-                style={{ display: sess.sessionId === activeSessionId ? 'block' : 'none' }}
+              <button
+                onClick={() => setView(activeSess.sessionId, 'sftp')}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors',
+                  activeView === 'sftp'
+                    ? 'bg-accent text-accent-fg'
+                    : 'text-muted hover:text-fg hover:bg-surface-2',
+                ].join(' ')}
               >
-                {/* Оверлей статуса (connecting / error / disconnected) */}
-                {sess.status !== 'connected' && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#0b0e14]/90 backdrop-blur-sm">
-                    {sess.status === 'connecting' && (
-                      <>
-                        <Loader size={24} className="text-accent animate-spin" />
-                        <p className="text-sm text-muted">{t('ssh.connecting')}</p>
-                        <p className="text-xs text-muted">{sess.host}</p>
-                      </>
+                <FolderOpen size={13} />
+                {t('ssh.viewFiles')}
+              </button>
+              <div className="ml-auto text-[11px] text-muted">
+                {activeSess.host}
+              </div>
+            </div>
+          )}
+
+          {/* Контент */}
+          <div className="flex-1 relative overflow-hidden">
+            {sessions.length === 0 ? (
+              /* Экран приветствия */
+              <div className="h-full flex flex-col items-center justify-center gap-5 text-center px-8 bg-[#0b0e14]">
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+                  <Terminal size={28} className="text-accent" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <p className="text-fg font-semibold text-base">{t('ssh.welcome')}</p>
+                  <p className="text-sm text-muted mt-1">{t('ssh.welcomeHint')}</p>
+                </div>
+                <button
+                  onClick={handleNewProfile}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-fg text-sm hover:opacity-90 transition-opacity"
+                >
+                  <Plus size={15} />
+                  {t('ssh.newProfile')}
+                </button>
+              </div>
+            ) : (
+              sessions.map((sess) => {
+                const isActive = sess.sessionId === activeSessionId
+                const view = getView(sess.sessionId)
+                return (
+                  <div
+                    key={sess.sessionId}
+                    className="absolute inset-0"
+                    style={{ display: isActive ? 'flex' : 'none', flexDirection: 'column' }}
+                  >
+                    {/* Оверлей connecting / error / disconnected */}
+                    {sess.status !== 'connected' && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#0b0e14]/95 backdrop-blur-sm">
+                        {sess.status === 'connecting' && (
+                          <>
+                            <Loader size={28} className="text-accent animate-spin" />
+                            <p className="text-sm text-muted">{t('ssh.connecting')}</p>
+                            <p className="text-xs text-muted/60">{sess.host}</p>
+                          </>
+                        )}
+                        {sess.status === 'error' && (
+                          <>
+                            <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center">
+                              <ServerCrash size={22} className="text-danger" />
+                            </div>
+                            <p className="text-sm text-fg font-medium">{t('ssh.errorConnect')}</p>
+                            <p className="text-xs text-danger/80 max-w-xs text-center leading-relaxed">
+                              {sess.error}
+                            </p>
+                            <button
+                              onClick={() => void closeSession(sess.sessionId)}
+                              className="mt-1 px-4 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
+                            >
+                              {t('ssh.closeTab')}
+                            </button>
+                          </>
+                        )}
+                        {sess.status === 'disconnected' && (
+                          <>
+                            <WifiOff size={24} className="text-muted" />
+                            <p className="text-sm text-muted">{t('ssh.disconnected')}</p>
+                            <button
+                              onClick={() => void closeSession(sess.sessionId)}
+                              className="mt-1 px-4 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
+                            >
+                              {t('ssh.closeTab')}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     )}
-                    {sess.status === 'error' && (
-                      <>
-                        <ServerCrash size={28} className="text-error" />
-                        <p className="text-sm text-fg">{t('ssh.errorConnect')}</p>
-                        <p className="text-xs text-error max-w-xs text-center">
-                          {sess.error}
-                        </p>
-                        <button
-                          onClick={() => void closeSession(sess.sessionId)}
-                          className="mt-2 px-3 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
-                        >
-                          {t('ssh.closeTab')}
-                        </button>
-                      </>
-                    )}
-                    {sess.status === 'disconnected' && (
-                      <>
-                        <WifiOff size={24} className="text-muted" />
-                        <p className="text-sm text-muted">{t('ssh.disconnected')}</p>
-                        <button
-                          onClick={() => void closeSession(sess.sessionId)}
-                          className="mt-1 px-3 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
-                        >
-                          {t('ssh.closeTab')}
-                        </button>
-                      </>
+
+                    {/* Терминал — всегда монтирован, просто скрыт через CSS */}
+                    <div
+                      className="absolute inset-0"
+                      style={{ display: view === 'terminal' ? 'block' : 'none' }}
+                    >
+                      <SshTerminal
+                        sessionId={sess.sessionId}
+                        active={isActive && view === 'terminal'}
+                      />
+                    </div>
+
+                    {/* SFTP — монтируется только когда переключились */}
+                    {view === 'sftp' && sess.status === 'connected' && (
+                      <SftpBrowser
+                        sessionId={sess.sessionId}
+                        serverLabel={sess.label}
+                        active={isActive && view === 'sftp'}
+                      />
                     )}
                   </div>
-                )}
-                <SshTerminal
-                  sessionId={sess.sessionId}
-                  active={sess.sessionId === activeSessionId}
-                />
-              </div>
-            ))
-          )}
+                )
+              })
+            )}
+          </div>
         </div>
       </div>
 
@@ -306,10 +360,7 @@ export function SshPage(): JSX.Element {
         <SshProfileForm
           profile={editProfile}
           onSave={(p) => void handleSaveProfile(p)}
-          onCancel={() => {
-            setShowForm(false)
-            setEditProfile(null)
-          }}
+          onCancel={() => { setShowForm(false); setEditProfile(null) }}
         />
       )}
 
