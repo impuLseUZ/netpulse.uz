@@ -173,6 +173,13 @@ export interface SftpProgressEvent {
   filename: string
   transferred: number
   total: number
+  /** Текущая скорость передачи в байтах/сек (скользящее среднее). */
+  bytesPerSecond: number
+  /** Оставшееся время в секундах (−1 если неизвестно). */
+  eta: number
+  /** Статус: 'active' | 'done' | 'error' */
+  status: 'active' | 'done' | 'error'
+  error?: string
 }
 
 /** Запись локальной файловой системы (левая панель). */

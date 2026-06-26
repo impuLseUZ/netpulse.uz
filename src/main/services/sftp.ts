@@ -129,44 +129,99 @@ export function listDirectory(query: SftpListQuery): Promise<SftpListResult> {
   })
 }
 
-/** Скачать файл: remote → диалог выбора пути → local. */
+/**
+ * Трекер скорости: скользящее среднее по окну 2 секунды.
+ * Это даёт плавные показания без резких скачков.
+ */
+class SpeedTracker {
+  private samples: { bytes: number; ts: number }[] = []
+  private readonly windowMs: number
+
+  constructor(windowMs = 2000) { this.windowMs = windowMs }
+
+  add(bytes: number): void {
+    const now = Date.now()
+    this.samples.push({ bytes, ts: now })
+    // Убираем старые сэмплы за пределами окна
+    const cutoff = now - this.windowMs
+    this.samples = this.samples.filter((s) => s.ts >= cutoff)
+  }
+
+  /** Скорость в байтах/сек. */
+  bps(): number {
+    if (this.samples.length < 2) return 0
+    const totalBytes = this.samples.reduce((s, x) => s + x.bytes, 0)
+    const span = this.samples[this.samples.length - 1].ts - this.samples[0].ts
+    return span > 0 ? (totalBytes / span) * 1000 : 0
+  }
+
+  /** Оставшееся время в секундах. */
+  eta(remaining: number): number {
+    const speed = this.bps()
+    return speed > 0 ? remaining / speed : -1
+  }
+}
+
+/** Скачать файл: remote → local. */
 export async function downloadFile(query: SftpDownloadQuery): Promise<void> {
   const sftp = sftpSessions.get(query.sessionId)
   if (!sftp) throw new Error('SFTP не открыт')
 
   const filename = path.basename(query.remotePath)
   const transferId = `dl-${Date.now()}`
+  const tracker = new SpeedTracker()
 
   // Получаем размер файла.
   const stat = await new Promise<{ size: number }>((res, rej) =>
     sftp.stat(query.remotePath, (e, s) => e ? rej(e) : res({ size: s.size ?? 0 }))
   )
 
-  await new Promise<void>((resolve, reject) => {
-    const readStream = sftp.createReadStream(query.remotePath)
-    const writeStream = fs.createWriteStream(query.localPath)
-    let transferred = 0
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const readStream = sftp.createReadStream(query.remotePath)
+      const writeStream = fs.createWriteStream(query.localPath)
+      let transferred = 0
 
-    readStream.on('data', (chunk: Buffer | string) => {
-      transferred += typeof chunk === 'string' ? chunk.length : chunk.length
-      broadcast(CHANNELS.sftp.progressEvent, {
-        sessionId: query.sessionId,
-        transferId,
-        direction: 'download',
-        filename,
-        transferred,
-        total: stat.size,
-      } satisfies SftpProgressEvent)
+      readStream.on('data', (chunk: Buffer | string) => {
+        const bytes = typeof chunk === 'string' ? chunk.length : chunk.length
+        transferred += bytes
+        tracker.add(bytes)
+        broadcast(CHANNELS.sftp.progressEvent, {
+          sessionId: query.sessionId,
+          transferId,
+          direction: 'download',
+          filename,
+          transferred,
+          total: stat.size,
+          bytesPerSecond: tracker.bps(),
+          eta: tracker.eta(stat.size - transferred),
+          status: 'active',
+        } satisfies SftpProgressEvent)
+      })
+
+      readStream.on('error', reject)
+      writeStream.on('error', reject)
+      writeStream.on('close', resolve)
+      readStream.pipe(writeStream)
     })
-
-    readStream.on('error', reject)
-    writeStream.on('error', reject)
-    writeStream.on('close', resolve)
-    readStream.pipe(writeStream)
-  })
+    // Финальное событие: done
+    broadcast(CHANNELS.sftp.progressEvent, {
+      sessionId: query.sessionId, transferId, direction: 'download',
+      filename, transferred: stat.size, total: stat.size,
+      bytesPerSecond: 0, eta: 0, status: 'done',
+    } satisfies SftpProgressEvent)
+  } catch (err) {
+    broadcast(CHANNELS.sftp.progressEvent, {
+      sessionId: query.sessionId, transferId, direction: 'download',
+      filename, transferred: 0, total: stat.size,
+      bytesPerSecond: 0, eta: -1, status: 'error',
+      error: (err as Error).message,
+    } satisfies SftpProgressEvent)
+    throw err
+  }
 }
 
-/** Загрузить файл: диалог выбора файла → local → remote. */
+/** Загрузить файл: local → remote. */
 export async function uploadFile(query: SftpUploadQuery): Promise<void> {
   const sftp = sftpSessions.get(query.sessionId)
   if (!sftp) throw new Error('SFTP не открыт')
@@ -174,29 +229,50 @@ export async function uploadFile(query: SftpUploadQuery): Promise<void> {
   const filename = path.basename(query.localPath)
   const transferId = `ul-${Date.now()}`
   const stat = fs.statSync(query.localPath)
+  const tracker = new SpeedTracker()
 
-  await new Promise<void>((resolve, reject) => {
-    const readStream = fs.createReadStream(query.localPath)
-    const writeStream = sftp.createWriteStream(query.remotePath)
-    let transferred = 0
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const readStream = fs.createReadStream(query.localPath)
+      const writeStream = sftp.createWriteStream(query.remotePath)
+      let transferred = 0
 
-    readStream.on('data', (chunk: Buffer | string) => {
-      transferred += typeof chunk === 'string' ? chunk.length : chunk.length
-      broadcast(CHANNELS.sftp.progressEvent, {
-        sessionId: query.sessionId,
-        transferId,
-        direction: 'upload',
-        filename,
-        transferred,
-        total: stat.size,
-      } satisfies SftpProgressEvent)
+      readStream.on('data', (chunk: Buffer | string) => {
+        const bytes = typeof chunk === 'string' ? chunk.length : chunk.length
+        transferred += bytes
+        tracker.add(bytes)
+        broadcast(CHANNELS.sftp.progressEvent, {
+          sessionId: query.sessionId,
+          transferId,
+          direction: 'upload',
+          filename,
+          transferred,
+          total: stat.size,
+          bytesPerSecond: tracker.bps(),
+          eta: tracker.eta(stat.size - transferred),
+          status: 'active',
+        } satisfies SftpProgressEvent)
+      })
+
+      readStream.on('error', reject)
+      writeStream.on('error', reject)
+      writeStream.on('close', resolve)
+      readStream.pipe(writeStream)
     })
-
-    readStream.on('error', reject)
-    writeStream.on('error', reject)
-    writeStream.on('close', resolve)
-    readStream.pipe(writeStream)
-  })
+    broadcast(CHANNELS.sftp.progressEvent, {
+      sessionId: query.sessionId, transferId, direction: 'upload',
+      filename, transferred: stat.size, total: stat.size,
+      bytesPerSecond: 0, eta: 0, status: 'done',
+    } satisfies SftpProgressEvent)
+  } catch (err) {
+    broadcast(CHANNELS.sftp.progressEvent, {
+      sessionId: query.sessionId, transferId, direction: 'upload',
+      filename, transferred: 0, total: stat.size,
+      bytesPerSecond: 0, eta: -1, status: 'error',
+      error: (err as Error).message,
+    } satisfies SftpProgressEvent)
+    throw err
+  }
 }
 
 /** Создать директорию. */
