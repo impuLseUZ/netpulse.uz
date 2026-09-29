@@ -10,6 +10,7 @@ import {
   ArrowLeftToLine, X, Check, HardDrive, RefreshCw,
   CheckCircle2, XCircle, Upload, Download,
 } from 'lucide-react'
+import { Button, ProgressBar } from '@/components/ui'
 import type { SftpEntry, SftpProgressEvent, LocalEntry } from '@shared/ssh-types'
 
 interface Props {
@@ -76,24 +77,30 @@ function sortEntries<T extends { name: string; size: number; modifiedAt: number;
 
 // ── Иконка файла ─────────────────────────────────────────────────────────────
 
+// Цвета по типу файла — намеренная функция (быстро находить архивы/картинки
+// глазами), не декоративная. Папки = accent (единственный интерактивный
+// акцент, "можно провалиться внутрь"); остальные — фиксированный набор,
+// отличимый от семантических ok/warn/danger, чтобы не путать с состояниями.
 function FileIcon({ name, isDirectory }: { name: string; isDirectory: boolean }): JSX.Element {
-  if (isDirectory) return <Folder size={14} className="text-[#4d9de0] shrink-0" />
+  if (isDirectory) return <Folder size={14} className="text-accent shrink-0" />
   const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  if (['zip','gz','tar','7z','rar'].includes(ext)) return <File size={14} className="text-yellow-500 shrink-0" />
-  if (['jpg','jpeg','png','gif','svg','webp'].includes(ext)) return <File size={14} className="text-pink-400 shrink-0" />
-  if (['mp4','mkv','avi','mov'].includes(ext)) return <File size={14} className="text-purple-400 shrink-0" />
-  if (['js','ts','tsx','jsx','py','go','rs','sh','php'].includes(ext)) return <File size={14} className="text-ok shrink-0" />
-  if (['exe','msi'].includes(ext)) return <File size={14} className="text-orange-400 shrink-0" />
+  if (['zip', 'gz', 'tar', '7z', 'rar'].includes(ext)) return <File size={14} className="text-amber-500 shrink-0" />
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return <File size={14} className="text-fuchsia-400 shrink-0" />
+  if (['mp4', 'mkv', 'avi', 'mov'].includes(ext)) return <File size={14} className="text-violet-400 shrink-0" />
+  if (['js', 'ts', 'tsx', 'jsx', 'py', 'go', 'rs', 'sh', 'php'].includes(ext)) return <File size={14} className="text-ok shrink-0" />
+  if (['exe', 'msi'].includes(ext)) return <File size={14} className="text-orange-400 shrink-0" />
   return <File size={14} className="text-muted/70 shrink-0" />
 }
 
 // ── Панель прогресса (floating) ───────────────────────────────────────────────
 
-function TransferPanel({ transfers, onDismiss }: {
+function TransferPanel({ transfers, onDismiss, onCancel }: {
   transfers: Map<string, TransferState>
   onDismiss: (id: string) => void
+  onCancel: (id: string) => void
 }): JSX.Element | null {
-  const items = [...transfers.values()]
+  // Новые передачи — сверху, иначе долгая активная передача прячет новую внизу списка.
+  const items = [...transfers.values()].sort((a, b) => b.startedAt - a.startedAt)
   if (items.length === 0) return null
   const active = items.filter((i) => i.status === 'active').length
 
@@ -116,13 +123,15 @@ function TransferPanel({ transfers, onDismiss }: {
       <div className="max-h-48 overflow-y-auto">
         {items.map((item) => {
           const pct = item.total > 0 ? Math.min(100, Math.round((item.transferred / item.total) * 100)) : 0
-          const isDone  = item.status === 'done'
-          const isError = item.status === 'error'
-          const isActive = item.status === 'active'
+          const isDone      = item.status === 'done'
+          const isError     = item.status === 'error'
+          const isCancelled = item.status === 'cancelled'
+          const isActive    = item.status === 'active'
+          const isFinished  = isDone || isError || isCancelled
 
           return (
             <div key={item.transferId} className="px-4 py-2.5 border-b border-border/30 last:border-0">
-              {/* Строка 1: иконка + имя + статус + кнопка закрыть */}
+              {/* Строка 1: иконка + имя + статус + кнопка закрыть/отменить */}
               <div className="flex items-center gap-2 mb-1.5">
                 {item.direction === 'upload'
                   ? <Upload size={13} className="text-accent shrink-0" />
@@ -130,10 +139,18 @@ function TransferPanel({ transfers, onDismiss }: {
 
                 <span className="text-[12px] text-fg truncate flex-1 font-medium">{item.filename}</span>
 
-                {isDone  && <CheckCircle2 size={14} className="text-ok shrink-0" />}
-                {isError && <XCircle      size={14} className="text-danger shrink-0" />}
+                {isDone      && <CheckCircle2 size={14} className="text-ok shrink-0" />}
+                {isError     && <XCircle      size={14} className="text-danger shrink-0" />}
+                {isCancelled && <XCircle      size={14} className="text-muted shrink-0" />}
 
-                {(isDone || isError) && (
+                {isActive && (
+                  <button onClick={() => onCancel(item.transferId)}
+                    title="Отменить передачу"
+                    className="text-muted hover:text-danger transition-colors ml-1">
+                    <X size={13} />
+                  </button>
+                )}
+                {isFinished && (
                   <button onClick={() => onDismiss(item.transferId)}
                     className="text-muted hover:text-fg transition-colors ml-1">
                     <X size={13} />
@@ -142,16 +159,11 @@ function TransferPanel({ transfers, onDismiss }: {
               </div>
 
               {/* Прогресс-бар */}
-              <div className="h-1.5 bg-bg rounded-full overflow-hidden mb-1.5">
-                <div
-                  className={[
-                    'h-full rounded-full transition-all duration-200',
-                    isDone  ? 'bg-ok' :
-                    isError ? 'bg-danger' : 'bg-accent',
-                  ].join(' ')}
-                  style={{ width: isDone ? '100%' : `${pct}%` }}
-                />
-              </div>
+              <ProgressBar
+                fraction={isDone ? 1 : pct / 100}
+                tone={isDone ? 'ok' : isError || isCancelled ? 'danger' : 'accent'}
+                className="mb-1.5"
+              />
 
               {/* Строка 2: размеры + скорость + ETA */}
               <div className="flex items-center gap-3 text-[11px]">
@@ -165,9 +177,9 @@ function TransferPanel({ transfers, onDismiss }: {
                 {/* % */}
                 <span className={[
                   'font-mono font-semibold',
-                  isDone ? 'text-ok' : isError ? 'text-danger' : 'text-accent',
+                  isDone ? 'text-ok' : isError || isCancelled ? 'text-danger' : 'text-accent',
                 ].join(' ')}>
-                  {isDone ? '100%' : isError ? 'Ошибка' : `${pct}%`}
+                  {isDone ? '100%' : isError ? 'Ошибка' : isCancelled ? 'Отменено' : `${pct}%`}
                 </span>
 
                 {/* Скорость (только активные) */}
@@ -218,7 +230,7 @@ function ActionsMenu({ showHidden, onToggleHidden, onRefresh, onMkdir, onRename,
     [<Trash2 key="t" size={13} />, 'Удалить', onDelete, true, !hasSelection],
   ]
   return (
-    <div className="absolute right-0 top-full mt-1 z-50 w-56 bg-surface border border-border rounded-lg shadow-xl py-1 overflow-hidden">
+    <div className="absolute right-0 top-full mt-1 z-50 w-56 bg-surface border border-border-strong rounded-card shadow-elevate-2 py-1 overflow-hidden">
       <button onClick={() => { onToggleHidden(); onClose() }}
         className="w-full flex items-center justify-between px-3 py-2 text-sm text-fg hover:bg-surface-2 transition-colors">
         <span>{showHidden ? 'Скрыть скрытые файлы' : 'Показать скрытые файлы'}</span>
@@ -434,7 +446,7 @@ function Panel(props: PanelProps): JSX.Element {
         {/* Drop overlay */}
         {isDragOver && isDropTarget && (
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-            <div className="bg-accent text-accent-fg rounded-xl px-6 py-3 flex items-center gap-2 shadow-xl">
+            <div className="bg-accent text-accent-fg rounded-card px-6 py-3 flex items-center gap-2 shadow-elevate-2">
               {title === 'Local' ? <Download size={18} /> : <Upload size={18} />}
               <span className="font-semibold text-sm">
                 {title === 'Local' ? 'Скачать сюда' : 'Загрузить на сервер'}
@@ -764,10 +776,9 @@ export function SftpBrowser({ sessionId, serverLabel, active }: Props): JSX.Elem
         <AlertCircle size={28} className="text-danger" />
         <p className="text-sm font-medium text-fg">{t('sftp.errorOpen')}</p>
         <p className="text-xs text-muted">{sftpError}</p>
-        <button onClick={() => { setSftpStatus('idle'); setSftpError(null) }}
-          className="mt-2 px-4 py-2 text-sm rounded-lg bg-accent text-accent-fg hover:opacity-90">
+        <Button variant="primary" onClick={() => { setSftpStatus('idle'); setSftpError(null) }} className="mt-2">
           {t('sftp.retry')}
-        </button>
+        </Button>
       </div>
     )
   }
@@ -843,6 +854,7 @@ export function SftpBrowser({ sessionId, serverLabel, active }: Props): JSX.Elem
       <TransferPanel
         transfers={transfers}
         onDismiss={(id) => setTransfers((p) => { const n = new Map(p); n.delete(id); return n })}
+        onCancel={(id) => void window.netpulse.sftp.cancelTransfer({ sessionId, transferId: id })}
       />
     </div>
   )

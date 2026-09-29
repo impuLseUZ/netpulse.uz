@@ -1,6 +1,17 @@
 import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, Copy, Check, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { Search, Loader2, ShieldCheck, ShieldAlert, Globe } from 'lucide-react'
+import {
+  Button,
+  Input,
+  Pill,
+  PillGroup,
+  Card,
+  PageContainer,
+  PageHeader,
+  CopyButton,
+  EmptyState
+} from '@/components/ui'
 import {
   DNS_RECORD_TYPES,
   type DnsLookupResult,
@@ -69,68 +80,36 @@ export function DnsPage(): JSX.Element {
   const filters: TypeFilter[] = ['ALL', ...DNS_RECORD_TYPES]
 
   return (
-    <div className="p-8 max-w-3xl mx-auto w-full">
-      <h2 className="text-xl font-semibold mb-6">{t('nav.dns')}</h2>
+    <PageContainer maxWidth="max-w-3xl">
+      <PageHeader icon={Globe} title={t('nav.dns')} />
 
       <div className="flex gap-2 mb-3">
-        <input
-          value={host}
-          onChange={(e) => setHost(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={t('dns.hostPlaceholder')}
-          className="flex-1 px-4 py-2.5 rounded-lg bg-surface border border-border text-sm font-mono outline-none focus:border-accent"
-        />
-        <button
-          onClick={() => void runLookup()}
-          disabled={loading || !host.trim()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent text-accent-fg text-sm disabled:opacity-50"
-        >
+        <Input value={host} onChange={(e) => setHost(e.target.value)} onKeyDown={onKeyDown} placeholder={t('dns.hostPlaceholder')} />
+        <Button variant="primary" onClick={() => void runLookup()} disabled={loading || !host.trim()}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
           {t('dns.lookup')}
-        </button>
+        </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <PillGroup>
         {filters.map((f) => (
-          <button
-            key={f}
-            onClick={() => setType(f)}
-            className={[
-              'px-3 py-1 rounded-md text-xs border transition-colors',
-              type === f
-                ? 'bg-accent text-accent-fg border-accent'
-                : 'bg-surface text-muted border-border hover:text-fg'
-            ].join(' ')}
-          >
+          <Pill key={f} active={type === f} onClick={() => setType(f)}>
             {f === 'ALL' ? t('dns.allTypes') : f}
-          </button>
+          </Pill>
         ))}
-      </div>
+      </PillGroup>
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mt-4 mb-6">
         <span className="text-xs text-muted">{t('dns.server')}:</span>
-        <input
-          value={server}
-          onChange={(e) => setServer(e.target.value)}
-          placeholder={t('dns.serverPlaceholder')}
-          className="w-48 px-3 py-1.5 rounded-md bg-surface border border-border text-xs font-mono outline-none focus:border-accent"
-        />
-        <button
-          onClick={() => void runWhois()}
-          disabled={whoisLoading || !host.trim()}
-          className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-md bg-surface-2 border border-border text-xs hover:text-fg disabled:opacity-50"
-        >
+        <Input value={server} onChange={(e) => setServer(e.target.value)} placeholder={t('dns.serverPlaceholder')} className="w-48 h-8 text-xs" />
+        <Button size="sm" variant="secondary" onClick={() => void runWhois()} disabled={whoisLoading || !host.trim()} className="ml-auto">
           {whoisLoading && <Loader2 size={14} className="animate-spin" />}
           WHOIS
-        </button>
-        <button
-          onClick={() => void runSsl()}
-          disabled={sslLoading || !host.trim()}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-surface-2 border border-border text-xs hover:text-fg disabled:opacity-50"
-        >
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => void runSsl()} disabled={sslLoading || !host.trim()}>
           {sslLoading ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
           {t('dns.ssl')}
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-danger text-sm mb-4">{error}</p>}
@@ -141,29 +120,26 @@ export function DnsPage(): JSX.Element {
             <span>
               {result.host} · {result.server}
             </span>
-            <span>{result.elapsedMs} ms</span>
+            <span className="font-mono tabular-nums">{result.elapsedMs} ms</span>
           </div>
           {result.records.length === 0 ? (
-            <p className="text-sm text-muted py-4 text-center">{t('dns.noRecords')}</p>
+            <EmptyState icon={Globe} title={t('dns.noRecords')} />
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
+            <Card className="overflow-hidden">
               <table className="w-full text-sm">
                 <tbody>
                   {result.records.map((r, i) => (
-                    <tr
-                      key={i}
-                      className="border-t border-border first:border-t-0 hover:bg-surface-2"
-                    >
+                    <tr key={i} className="border-t border-border first:border-t-0 hover:bg-surface-2/60 transition-colors">
                       <td className="px-3 py-2 w-16 text-muted font-mono">{r.type}</td>
                       <td className="px-3 py-2 font-mono break-all">{r.value}</td>
                       <td className="px-3 py-2 w-10">
-                        <CopyBtn value={r.value} />
+                        <CopyButton value={r.value} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
         </div>
       )}
@@ -174,33 +150,25 @@ export function DnsPage(): JSX.Element {
         <div>
           <div className="flex items-center justify-between text-xs text-muted mb-2">
             <span>WHOIS · {whois.query}</span>
-            <span>{whois.elapsedMs} ms</span>
+            <span className="font-mono tabular-nums">{whois.elapsedMs} ms</span>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-3 max-h-96 overflow-y-auto">
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all text-fg">
-              {whois.raw}
-            </pre>
-          </div>
+          <Card className="p-3 max-h-96 overflow-y-auto">
+            <pre className="text-xs font-mono whitespace-pre-wrap break-all text-fg">{whois.raw}</pre>
+          </Card>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }
 
 function SslCard({ ssl }: { ssl: SslResult }): JSX.Element {
   const { t } = useTranslation()
   // Цвет статуса по сроку: истёк → danger, <30 дней → warn, иначе ok.
-  const status = ssl.expired
-    ? 'danger'
-    : ssl.daysRemaining != null && ssl.daysRemaining < 30
-      ? 'warn'
-      : 'ok'
-  const statusColor =
-    status === 'danger' ? 'text-danger' : status === 'warn' ? 'text-warn' : 'text-ok'
+  const status = ssl.expired ? 'danger' : ssl.daysRemaining != null && ssl.daysRemaining < 30 ? 'warn' : 'ok'
+  const statusColor = status === 'danger' ? 'text-danger' : status === 'warn' ? 'text-warn' : 'text-ok'
   const Icon = status === 'ok' ? ShieldCheck : ShieldAlert
 
-  const fmtDate = (iso?: string): string =>
-    iso ? new Date(iso).toLocaleDateString() : '—'
+  const fmtDate = (iso?: string): string => (iso ? new Date(iso).toLocaleDateString() : '—')
 
   const rows: { label: string; value: string; mono?: boolean }[] = [
     { label: t('dns.sslSubject'), value: ssl.subjectCN || '—' },
@@ -215,10 +183,12 @@ function SslCard({ ssl }: { ssl: SslResult }): JSX.Element {
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between text-xs text-muted mb-2">
-        <span>SSL · {ssl.host}:{ssl.port}</span>
-        <span>{ssl.elapsedMs} ms</span>
+        <span>
+          SSL · {ssl.host}:{ssl.port}
+        </span>
+        <span className="font-mono tabular-nums">{ssl.elapsedMs} ms</span>
       </div>
-      <div className="rounded-lg border border-border bg-surface p-4">
+      <Card className="p-4">
         {/* Статус срока */}
         <div className={`flex items-center gap-2 mb-3 ${statusColor}`}>
           <Icon size={18} className="shrink-0" />
@@ -244,9 +214,7 @@ function SslCard({ ssl }: { ssl: SslResult }): JSX.Element {
           {rows.map((r) => (
             <Fragment key={r.label}>
               <span className="text-muted whitespace-nowrap">{r.label}</span>
-              <span className={`break-all ${r.mono ? 'font-mono text-xs' : ''}`}>
-                {r.value}
-              </span>
+              <span className={`break-all ${r.mono ? 'font-mono text-xs' : ''}`}>{r.value}</span>
             </Fragment>
           ))}
         </div>
@@ -257,10 +225,7 @@ function SslCard({ ssl }: { ssl: SslResult }): JSX.Element {
             <span className="text-muted text-xs">{t('dns.sslAltNames')}:</span>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {ssl.altNames.map((n) => (
-                <span
-                  key={n}
-                  className="px-2 py-0.5 rounded bg-surface-2 text-xs font-mono"
-                >
+                <span key={n} className="px-2 py-0.5 rounded-md bg-surface-2 text-xs font-mono">
                   {n}
                 </span>
               ))}
@@ -271,32 +236,12 @@ function SslCard({ ssl }: { ssl: SslResult }): JSX.Element {
         {/* Отпечаток */}
         {ssl.fingerprint256 && (
           <div className="mt-3 flex items-center gap-2">
-            <span className="text-muted text-xs whitespace-nowrap">
-              {t('dns.sslFingerprint')}:
-            </span>
+            <span className="text-muted text-xs whitespace-nowrap">{t('dns.sslFingerprint')}:</span>
             <span className="font-mono text-xs break-all">{ssl.fingerprint256}</span>
-            <CopyBtn value={ssl.fingerprint256} />
+            <CopyButton value={ssl.fingerprint256} />
           </div>
         )}
-      </div>
+      </Card>
     </div>
-  )
-}
-
-function CopyBtn({ value }: { value: string }): JSX.Element {
-  const [copied, setCopied] = useState(false)
-  const copy = async (): Promise<void> => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1200)
-    } catch {
-      /* буфер недоступен */
-    }
-  }
-  return (
-    <button onClick={() => void copy()} className="text-muted hover:text-fg">
-      {copied ? <Check size={14} className="text-ok" /> : <Copy size={14} />}
-    </button>
   )
 }

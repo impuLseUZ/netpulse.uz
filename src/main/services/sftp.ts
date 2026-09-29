@@ -31,6 +31,20 @@ const sftpSessions = new Map<string, SFTPWrapper>()
 /** Зарегистрировать ssh2.Client для SFTP (вызывается из ssh.ts после connect). */
 const sshClients = new Map<string, Client>()
 
+/** Активные передачи: transferId → функция отмены. Позволяет прервать конкретную передачу. */
+const activeTransfers = new Map<string, () => void>()
+
+/**
+ * Отменить активную передачу по transferId.
+ * Возвращает false, если передача не найдена (уже завершилась/неизвестный id).
+ */
+export function cancelTransfer(transferId: string): boolean {
+  const cancel = activeTransfers.get(transferId)
+  if (!cancel) return false
+  cancel()
+  return true
+}
+
 export function registerSshClient(sessionId: string, client: Client): void {
   sshClients.set(sessionId, client)
 }
@@ -170,6 +184,7 @@ export async function downloadFile(query: SftpDownloadQuery): Promise<void> {
   const filename = path.basename(query.remotePath)
   const transferId = `dl-${Date.now()}`
   const tracker = new SpeedTracker()
+  let cancelled = false
 
   // Получаем размер файла.
   const stat = await new Promise<{ size: number }>((res, rej) =>
@@ -181,6 +196,12 @@ export async function downloadFile(query: SftpDownloadQuery): Promise<void> {
       const readStream = sftp.createReadStream(query.remotePath)
       const writeStream = fs.createWriteStream(query.localPath)
       let transferred = 0
+
+      activeTransfers.set(transferId, () => {
+        cancelled = true
+        readStream.destroy(new Error('cancelled'))
+        writeStream.destroy(new Error('cancelled'))
+      })
 
       readStream.on('data', (chunk: Buffer | string) => {
         const bytes = typeof chunk === 'string' ? chunk.length : chunk.length
@@ -211,13 +232,19 @@ export async function downloadFile(query: SftpDownloadQuery): Promise<void> {
       bytesPerSecond: 0, eta: 0, status: 'done',
     } satisfies SftpProgressEvent)
   } catch (err) {
+    // Удаляем недокачанный файл — частичная копия хуже отсутствия файла.
+    if (cancelled) {
+      try { fs.unlinkSync(query.localPath) } catch { /* ignore */ }
+    }
     broadcast(CHANNELS.sftp.progressEvent, {
       sessionId: query.sessionId, transferId, direction: 'download',
       filename, transferred: 0, total: stat.size,
-      bytesPerSecond: 0, eta: -1, status: 'error',
-      error: (err as Error).message,
+      bytesPerSecond: 0, eta: -1, status: cancelled ? 'cancelled' : 'error',
+      error: cancelled ? undefined : (err as Error).message,
     } satisfies SftpProgressEvent)
-    throw err
+    if (!cancelled) throw err
+  } finally {
+    activeTransfers.delete(transferId)
   }
 }
 
@@ -230,12 +257,20 @@ export async function uploadFile(query: SftpUploadQuery): Promise<void> {
   const transferId = `ul-${Date.now()}`
   const stat = fs.statSync(query.localPath)
   const tracker = new SpeedTracker()
+  let cancelled = false
 
   try {
     await new Promise<void>((resolve, reject) => {
       const readStream = fs.createReadStream(query.localPath)
       const writeStream = sftp.createWriteStream(query.remotePath)
       let transferred = 0
+
+      activeTransfers.set(transferId, () => {
+        cancelled = true
+        readStream.destroy(new Error('cancelled'))
+        // ssh2's WriteStream.destroy() doesn't accept an error argument (unlike Node's).
+        writeStream.destroy()
+      })
 
       readStream.on('data', (chunk: Buffer | string) => {
         const bytes = typeof chunk === 'string' ? chunk.length : chunk.length
@@ -265,13 +300,19 @@ export async function uploadFile(query: SftpUploadQuery): Promise<void> {
       bytesPerSecond: 0, eta: 0, status: 'done',
     } satisfies SftpProgressEvent)
   } catch (err) {
+    // Удаляем недокачанный файл на сервере — частичная копия хуже отсутствия файла.
+    if (cancelled) {
+      sftp.unlink(query.remotePath, () => { /* ignore */ })
+    }
     broadcast(CHANNELS.sftp.progressEvent, {
       sessionId: query.sessionId, transferId, direction: 'upload',
       filename, transferred: 0, total: stat.size,
-      bytesPerSecond: 0, eta: -1, status: 'error',
-      error: (err as Error).message,
+      bytesPerSecond: 0, eta: -1, status: cancelled ? 'cancelled' : 'error',
+      error: cancelled ? undefined : (err as Error).message,
     } satisfies SftpProgressEvent)
-    throw err
+    if (!cancelled) throw err
+  } finally {
+    activeTransfers.delete(transferId)
   }
 }
 

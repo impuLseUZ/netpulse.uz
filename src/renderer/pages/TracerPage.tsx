@@ -8,8 +8,9 @@
 
 import { useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Play, Square, Copy, Download, Route, CheckCircle2 } from 'lucide-react'
+import { Play, Square, Download, Route, CheckCircle2 } from 'lucide-react'
 import { useTracerStore } from '@/store/tracer'
+import { Button, Input, CopyButton, EmptyState, PulseTrace, MetricSecondary, TableShell, Table, THead, TH } from '@/components/ui'
 import type { TraceHop } from '@shared/trace-types'
 
 // ── Утилиты ───────────────────────────────────────────────────────────────────
@@ -22,31 +23,14 @@ function fmtLoss(v: number): string {
   return `${v}%`
 }
 
-/** Копирует текст в буфер обмена. */
-async function copyText(text: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    /* ignore */
-  }
-}
-
 /** Экспортирует таблицу хопов в CSV и скачивает. */
 function exportCsv(hops: TraceHop[], target: string): void {
   const header = ['#', 'IP', 'Hostname', 'Loss%', 'Last(ms)', 'Avg(ms)', 'Min(ms)', 'Max(ms)', 'Jitter(ms)', 'Sent', 'Received']
-  const lines = hops.map((h) => [
-    h.hop,
-    h.ip ?? '',
-    h.hostname ?? '',
-    h.lossPercent,
-    h.lastMs ?? '',
-    h.avg ?? '',
-    h.min ?? '',
-    h.max ?? '',
-    h.jitter ?? '',
-    h.sent,
-    h.received,
-  ].join(','))
+  const lines = hops.map((h) =>
+    [h.hop, h.ip ?? '', h.hostname ?? '', h.lossPercent, h.lastMs ?? '', h.avg ?? '', h.min ?? '', h.max ?? '', h.jitter ?? '', h.sent, h.received].join(
+      ','
+    )
+  )
   const csv = [header.join(','), ...lines].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -68,110 +52,55 @@ function LatencyBar({ ms, maxMs }: { ms: number | undefined; maxMs: number }): J
     return <div className="w-16 h-1.5 rounded-full bg-surface-2" />
   }
   const pct = Math.min((ms / maxMs) * 100, 100)
-  const color =
-    ms < 50 ? 'bg-ok' : ms < 150 ? 'bg-warn' : 'bg-danger'
+  const color = ms < 50 ? 'bg-ok' : ms < 150 ? 'bg-warn' : 'bg-danger'
   return (
     <div className="w-16 h-1.5 rounded-full bg-surface-2 overflow-hidden">
-      <div
-        className={`h-full rounded-full ${color}`}
-        style={{ width: `${pct}%`, transition: 'width 0.4s ease-out' }}
-      />
+      <div className={`h-full rounded-full ${color} transition-[width] duration-300 ease-out`} style={{ width: `${pct}%` }} />
     </div>
   )
 }
 
 // ── Компонент: строка хопа ────────────────────────────────────────────────────
 
-function HopRow({
-  hop,
-  maxMs,
-}: {
-  hop: TraceHop
-  maxMs: number
-}): JSX.Element {
+function HopRow({ hop, maxMs }: { hop: TraceHop; maxMs: number }): JSX.Element {
   const { t } = useTranslation()
 
   const isNoReply = !hop.ip
   const hasLoss = hop.lossPercent > 0
   const isBadLoss = hop.lossPercent >= 50
 
-  const lossCls = isBadLoss
-    ? 'text-danger font-semibold'
-    : hasLoss
-      ? 'text-warn'
-      : 'text-muted'
-
-  const rowCls = isBadLoss
-    ? 'border-t border-border bg-danger/5'
-    : 'border-t border-border hover:bg-surface-2/60'
+  const lossCls = isBadLoss ? 'text-danger font-semibold' : hasLoss ? 'text-warn' : 'text-muted'
+  const rowCls = isBadLoss ? 'border-t border-border bg-danger/5' : 'border-t border-border hover:bg-surface-2/60 transition-colors'
 
   return (
     <tr className={rowCls}>
-      {/* # */}
       <td className="px-3 py-2 text-muted text-xs w-8">{hop.hop}</td>
 
-      {/* IP + hostname */}
       <td className="px-3 py-2">
         {isNoReply ? (
           <span className="text-muted text-sm">{t('tracer.noReply')}</span>
         ) : (
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-sm">{hop.ip}</span>
-            {hop.hostname && (
-              <span className="text-muted text-xs truncate max-w-[200px]">
-                · {hop.hostname}
-              </span>
-            )}
-            <button
-              onClick={() => void copyText(hop.ip!)}
-              className="opacity-0 group-hover:opacity-100 text-muted hover:text-fg transition-opacity ml-auto shrink-0"
-              title="Копировать IP"
-            >
-              <Copy size={12} />
-            </button>
+            {hop.hostname && <span className="text-muted text-xs truncate max-w-[200px]">· {hop.hostname}</span>}
+            <CopyButton value={hop.ip!} className="opacity-0 group-hover:opacity-100 ml-auto shrink-0" size={12} />
           </div>
         )}
       </td>
 
-      {/* Потери */}
-      <td className={`px-3 py-2 text-right text-sm ${lossCls}`}>
-        {fmtLoss(hop.lossPercent)}
-      </td>
+      <td className={`px-3 py-2 text-right text-sm font-mono tabular-nums ${lossCls}`}>{fmtLoss(hop.lossPercent)}</td>
 
-      {/* Бар задержки */}
       <td className="px-3 py-2">
         <LatencyBar ms={hop.lastMs} maxMs={maxMs} />
       </td>
 
-      {/* Last */}
-      <td className="px-3 py-2 text-right font-mono text-sm">
-        {fmtMs(hop.lastMs)}
-      </td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums text-sm">{fmtMs(hop.lastMs)}</td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums text-sm text-muted">{fmtMs(hop.avg)}</td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums text-sm text-muted">{fmtMs(hop.min)}</td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums text-sm text-muted">{fmtMs(hop.max)}</td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums text-sm text-muted">{fmtMs(hop.jitter)}</td>
 
-      {/* Avg */}
-      <td className="px-3 py-2 text-right font-mono text-sm text-muted">
-        {fmtMs(hop.avg)}
-      </td>
-
-      {/* Min */}
-      <td className="px-3 py-2 text-right font-mono text-sm text-muted">
-        {fmtMs(hop.min)}
-      </td>
-
-      {/* Max */}
-      <td className="px-3 py-2 text-right font-mono text-sm text-muted">
-        {fmtMs(hop.max)}
-      </td>
-
-      {/* Jitter */}
-      <td className="px-3 py-2 text-right font-mono text-sm text-muted">
-        {fmtMs(hop.jitter)}
-      </td>
-
-      {/* Sent/Recv */}
-      <td className="px-3 py-2 text-right text-xs text-muted">
-        {isNoReply ? '—' : `${hop.received}/${hop.sent}`}
-      </td>
+      <td className="px-3 py-2 text-right text-xs font-mono tabular-nums text-muted">{isNoReply ? '—' : `${hop.received}/${hop.sent}`}</td>
     </tr>
   )
 }
@@ -180,19 +109,7 @@ function HopRow({
 
 export function TracerPage(): JSX.Element {
   const { t } = useTranslation()
-  const {
-    target,
-    running,
-    method,
-    resolvedIp,
-    hops,
-    error,
-    lastUpdated,
-    setTarget,
-    start,
-    stop,
-    reset,
-  } = useTracerStore()
+  const { target, running, method, resolvedIp, hops, error, lastUpdated, setTarget, start, stop } = useTracerStore()
 
   // Останавливаем мониторинг при уходе со страницы
   useEffect(() => {
@@ -218,29 +135,24 @@ export function TracerPage(): JSX.Element {
 
   return (
     <div className="p-6 max-w-6xl mx-auto w-full">
-
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Route size={20} />
+        <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2.5">
+          <Route size={18} className="text-accent" />
           {t('nav.tracer')}
         </h2>
 
-        {/* Кнопка экспорта CSV */}
         {hasResults && !running && (
-          <button
-            onClick={() => exportCsv(hops, target)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs hover:bg-surface-2 text-muted transition-colors"
-          >
+          <Button size="sm" variant="secondary" onClick={() => exportCsv(hops, target)}>
             <Download size={13} />
             CSV
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Строка ввода + кнопка */}
       <div className="flex gap-2 mb-4">
-        <input
+        <Input
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           onKeyDown={(e) => {
@@ -248,36 +160,27 @@ export function TracerPage(): JSX.Element {
           }}
           placeholder={t('tracer.targetPlaceholder')}
           disabled={running}
-          className="flex-1 px-4 py-2.5 rounded-lg bg-surface border border-border text-sm font-mono outline-none focus:border-accent disabled:opacity-60 transition-colors"
         />
         {!running ? (
-          <button
-            onClick={handleStart}
-            disabled={!target.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-accent text-accent-fg text-sm font-medium disabled:opacity-50 transition-opacity"
-          >
+          <Button variant="primary" onClick={handleStart} disabled={!target.trim()} className="px-5">
             <Play size={15} />
             {t('tracer.start')}
-          </button>
+          </Button>
         ) : (
-          <button
-            onClick={handleStop}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-danger text-white text-sm font-medium"
-          >
+          <Button variant="danger" onClick={handleStop} className="px-5">
             <Square size={15} />
             {t('tracer.stop')}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Статус-строка */}
       {(method || running) && (
         <div className="flex items-center gap-3 text-xs text-muted mb-4">
-          {/* Пульсирующий индикатор мониторинга */}
           {running && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
-              <span className="text-ok">мониторинг</span>
+            <span className="flex items-center gap-1.5 text-ok">
+              <PulseTrace width={28} height={11} color="ok" />
+              мониторинг
             </span>
           )}
           {!running && hasResults && (
@@ -287,9 +190,7 @@ export function TracerPage(): JSX.Element {
             </span>
           )}
 
-          {resolvedIp && (
-            <span className="font-mono">{resolvedIp}</span>
-          )}
+          {resolvedIp && <span className="font-mono">{resolvedIp}</span>}
 
           {method && (
             <span className={method === 'raw' ? 'text-ok' : 'text-warn'}>
@@ -297,78 +198,53 @@ export function TracerPage(): JSX.Element {
             </span>
           )}
 
-          {lastUpdated && (
-            <span className="ml-auto">
-              обновлено {new Date(lastUpdated).toLocaleTimeString()}
-            </span>
-          )}
+          {lastUpdated && <span className="ml-auto font-mono tabular-nums">обновлено {new Date(lastUpdated).toLocaleTimeString()}</span>}
         </div>
       )}
 
       {/* Ошибка */}
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-danger/10 border border-danger/30 text-sm text-danger">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-4 px-4 py-3 rounded-control bg-danger/10 border border-danger/30 text-sm text-danger">{error}</div>}
 
       {/* Сводка по трассе (показывается когда есть результаты) */}
       {hasResults && (
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <SummaryCard
-            label="Хопов"
-            value={String(totalHops)}
-          />
-          <SummaryCard
-            label="С потерями"
-            value={String(hopsWithLoss)}
-            highlight={hopsWithLoss > 0}
-          />
-          <SummaryCard
-            label="Задержка (конечный)"
-            value={lastHop?.lastMs != null ? `${lastHop.lastMs} мс` : '—'}
-          />
-          <SummaryCard
-            label="Avg (конечный)"
-            value={lastHop?.avg != null ? `${lastHop.avg} мс` : '—'}
-          />
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <MetricSecondary label="Хопов" value={String(totalHops)} />
+          <MetricSecondary label="С потерями" value={String(hopsWithLoss)} active={hopsWithLoss > 0} />
+          <MetricSecondary label="Задержка (конечный)" value={lastHop?.lastMs != null ? String(lastHop.lastMs) : '—'} unit="мс" />
+          <MetricSecondary label="Avg (конечный)" value={lastHop?.avg != null ? String(lastHop.avg) : '—'} unit="мс" />
         </div>
       )}
 
       {/* Таблица хопов */}
       {hasResults && (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-2 text-left text-xs sticky top-0">
-              <tr>
-                <th className="px-3 py-2.5 font-medium text-muted w-8">#</th>
-                <th className="px-3 py-2.5 font-medium text-muted">{t('tracer.host')}</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">{t('tracer.loss')}</th>
-                <th className="px-3 py-2.5 font-medium text-muted w-20"></th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">{t('tracer.last')}</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">avg</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">min</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">max</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">{t('tracer.jitter')}</th>
-                <th className="px-3 py-2.5 font-medium text-muted text-right">recv/sent</th>
+        <TableShell>
+          <Table>
+            <THead>
+              <tr className="sticky top-0">
+                <TH className="w-8">#</TH>
+                <TH>{t('tracer.host')}</TH>
+                <TH className="text-right">{t('tracer.loss')}</TH>
+                <TH className="w-20"></TH>
+                <TH className="text-right">{t('tracer.last')}</TH>
+                <TH className="text-right">avg</TH>
+                <TH className="text-right">min</TH>
+                <TH className="text-right">max</TH>
+                <TH className="text-right">{t('tracer.jitter')}</TH>
+                <TH className="text-right">recv/sent</TH>
               </tr>
-            </thead>
+            </THead>
             <tbody className="group">
               {hops.map((h) => (
                 <HopRow key={h.hop} hop={h} maxMs={maxMs} />
               ))}
             </tbody>
-          </table>
-        </div>
+          </Table>
+        </TableShell>
       )}
 
       {/* Пустое состояние — до первого запуска */}
       {!hasResults && !running && !error && (
-        <div className="flex flex-col items-center justify-center py-20 text-center select-none">
-          <Route size={40} className="text-muted/40 mb-4" strokeWidth={1.5} />
-          <p className="text-sm text-muted mb-1">Введите хост или IP и нажмите «Трассировать»</p>
-          <p className="text-xs text-muted/60">Например: google.com, 8.8.8.8, mover.uz</p>
-        </div>
+        <EmptyState icon={Route} title="Введите хост или IP и нажмите «Трассировать»" hint="Например: google.com, 8.8.8.8, mover.uz" />
       )}
 
       {/* Состояние загрузки — ждём первых хопов */}
@@ -376,37 +252,12 @@ export function TracerPage(): JSX.Element {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="flex gap-1 mb-4">
             {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-accent animate-bounce"
-                style={{ animationDelay: `${i * 120}ms` }}
-              />
+              <div key={i} className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: `${i * 120}ms` }} />
             ))}
           </div>
           <p className="text-sm text-muted">Построение маршрута…</p>
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Компонент: карточка сводки ────────────────────────────────────────────────
-
-function SummaryCard({
-  label,
-  value,
-  highlight,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-}): JSX.Element {
-  return (
-    <div className="rounded-lg border border-border bg-surface px-4 py-3">
-      <div className="text-xs text-muted mb-1">{label}</div>
-      <div className={`text-lg font-semibold font-mono ${highlight ? 'text-danger' : ''}`}>
-        {value}
-      </div>
     </div>
   )
 }

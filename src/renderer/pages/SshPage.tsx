@@ -21,6 +21,7 @@ import { SshTerminal } from '@/components/SshTerminal'
 import { SftpBrowser } from '@/components/SftpBrowser'
 import { SshProfileForm } from '@/components/SshProfileForm'
 import { SshPasswordPrompt, type PasswordConnectResult } from '@/components/SshPasswordPrompt'
+import { Button, Pill, StatusDot } from '@/components/ui'
 import type { SshProfile, SshProfilePublic, SshSessionStatus } from '@shared/ssh-types'
 
 type SessionView = 'terminal' | 'sftp'
@@ -179,10 +180,7 @@ export function SshPage(): JSX.Element {
                   onDoubleClick={() => handleConnect(p)}
                 >
                   {/* Индикатор активного соединения */}
-                  <div className={[
-                    'w-1.5 h-1.5 rounded-full shrink-0 transition-colors',
-                    isConnected ? 'bg-ok' : 'bg-border',
-                  ].join(' ')} />
+                  <StatusDot tone={isConnected ? 'ok' : 'muted'} pulse={isConnected} className="shrink-0" />
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-fg truncate font-medium">{p.label}</p>
@@ -225,32 +223,20 @@ export function SshPage(): JSX.Element {
 
           {/* Переключатель Terminal / Files — только когда есть активная подключённая сессия */}
           {activeSess && activeSess.status === 'connected' && (
-            <div className="flex items-center gap-0 px-3 py-1.5 bg-surface border-b border-border shrink-0">
-              <button
-                onClick={() => setView(activeSess.sessionId, 'terminal')}
-                className={[
-                  'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors',
-                  activeView === 'terminal'
-                    ? 'bg-accent text-accent-fg'
-                    : 'text-muted hover:text-fg hover:bg-surface-2',
-                ].join(' ')}
-              >
-                <Terminal size={13} />
-                {t('ssh.viewTerminal')}
-              </button>
-              <button
-                onClick={() => setView(activeSess.sessionId, 'sftp')}
-                className={[
-                  'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors',
-                  activeView === 'sftp'
-                    ? 'bg-accent text-accent-fg'
-                    : 'text-muted hover:text-fg hover:bg-surface-2',
-                ].join(' ')}
-              >
-                <FolderOpen size={13} />
-                {t('ssh.viewFiles')}
-              </button>
-              <div className="ml-auto text-[11px] text-muted">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border-b border-border shrink-0">
+              <Pill active={activeView === 'terminal'} onClick={() => setView(activeSess.sessionId, 'terminal')}>
+                <span className="inline-flex items-center gap-1.5">
+                  <Terminal size={13} />
+                  {t('ssh.viewTerminal')}
+                </span>
+              </Pill>
+              <Pill active={activeView === 'sftp'} onClick={() => setView(activeSess.sessionId, 'sftp')}>
+                <span className="inline-flex items-center gap-1.5">
+                  <FolderOpen size={13} />
+                  {t('ssh.viewFiles')}
+                </span>
+              </Pill>
+              <div className="ml-auto text-[11px] text-muted font-mono">
                 {activeSess.host}
               </div>
             </div>
@@ -260,21 +246,18 @@ export function SshPage(): JSX.Element {
           <div className="flex-1 relative overflow-hidden">
             {sessions.length === 0 ? (
               /* Экран приветствия */
-              <div className="h-full flex flex-col items-center justify-center gap-5 text-center px-8 bg-[#0b0e14]">
-                <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+              <div className="h-full flex flex-col items-center justify-center gap-5 text-center px-8 bg-term">
+                <div className="w-14 h-14 rounded-card bg-accent/10 border border-accent/20 flex items-center justify-center">
                   <Terminal size={28} className="text-accent" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <p className="text-fg font-semibold text-base">{t('ssh.welcome')}</p>
+                  <p className="text-term-fg font-semibold text-base">{t('ssh.welcome')}</p>
                   <p className="text-sm text-muted mt-1">{t('ssh.welcomeHint')}</p>
                 </div>
-                <button
-                  onClick={handleNewProfile}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-fg text-sm hover:opacity-90 transition-opacity"
-                >
+                <Button variant="primary" onClick={handleNewProfile}>
                   <Plus size={15} />
                   {t('ssh.newProfile')}
-                </button>
+                </Button>
               </div>
             ) : (
               sessions.map((sess) => {
@@ -288,12 +271,12 @@ export function SshPage(): JSX.Element {
                   >
                     {/* Оверлей connecting / error / disconnected */}
                     {sess.status !== 'connected' && (
-                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#0b0e14]/95 backdrop-blur-sm">
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-term/95 backdrop-blur-sm">
                         {sess.status === 'connecting' && (
                           <>
                             <Loader size={28} className="text-accent animate-spin" />
                             <p className="text-sm text-muted">{t('ssh.connecting')}</p>
-                            <p className="text-xs text-muted/60">{sess.host}</p>
+                            <p className="text-xs text-muted/60 font-mono">{sess.host}</p>
                           </>
                         )}
                         {sess.status === 'error' && (
@@ -301,28 +284,22 @@ export function SshPage(): JSX.Element {
                             <div className="w-12 h-12 rounded-full bg-danger/10 flex items-center justify-center">
                               <ServerCrash size={22} className="text-danger" />
                             </div>
-                            <p className="text-sm text-fg font-medium">{t('ssh.errorConnect')}</p>
+                            <p className="text-sm text-term-fg font-medium">{t('ssh.errorConnect')}</p>
                             <p className="text-xs text-danger/80 max-w-xs text-center leading-relaxed">
                               {sess.error}
                             </p>
-                            <button
-                              onClick={() => void closeSession(sess.sessionId)}
-                              className="mt-1 px-4 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
-                            >
+                            <Button size="sm" variant="secondary" onClick={() => void closeSession(sess.sessionId)} className="mt-1">
                               {t('ssh.closeTab')}
-                            </button>
+                            </Button>
                           </>
                         )}
                         {sess.status === 'disconnected' && (
                           <>
                             <WifiOff size={24} className="text-muted" />
                             <p className="text-sm text-muted">{t('ssh.disconnected')}</p>
-                            <button
-                              onClick={() => void closeSession(sess.sessionId)}
-                              className="mt-1 px-4 py-1.5 text-xs rounded-lg border border-border text-muted hover:text-fg transition-colors"
-                            >
+                            <Button size="sm" variant="secondary" onClick={() => void closeSession(sess.sessionId)} className="mt-1">
                               {t('ssh.closeTab')}
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>

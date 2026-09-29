@@ -10,27 +10,41 @@
 import { detectLocalSubnet } from '../adapters/local-subnet'
 import { NetAddresses } from '@shared/netinfo-types'
 
+const IPV4_URL = 'https://api.ipify.org'
 const TRACE_URL = 'https://speed.cloudflare.com/cdn-cgi/trace'
 const TIMEOUT_MS = 4000
 
-/** Внешний IP через Cloudflare trace; undefined при любой сетевой ошибке. */
-async function getExternalIp(): Promise<string | undefined> {
+async function fetchText(url: string): Promise<string | undefined> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
   try {
-    const res = await fetch(TRACE_URL, { signal: ctrl.signal })
+    const res = await fetch(url, { signal: ctrl.signal })
     if (!res.ok) return undefined
-    const text = await res.text()
-    for (const line of text.split('\n')) {
-      if (line.startsWith('ip=')) return line.slice(3).trim() || undefined
-    }
-    return undefined
+    return (await res.text()).trim() || undefined
   } catch {
-    // нет интернета / таймаут / блокировка — внешний IP просто неизвестен
     return undefined
   } finally {
     clearTimeout(timer)
   }
+}
+
+/**
+ * Внешний IP. Сначала пробуем IPv4-only сервис (ipify) — большинство
+ * пользователей ожидают увидеть именно IPv4, а не IPv6, который отдаёт
+ * Cloudflare trace на сетях с включённым IPv6. Если IPv4 недоступен
+ * (сеть чисто IPv6 или ipify не отвечает) — падаем на Cloudflare trace.
+ * undefined при любой сетевой ошибке (нет интернета/таймаут/блокировка).
+ */
+async function getExternalIp(): Promise<string | undefined> {
+  const ipv4 = await fetchText(IPV4_URL)
+  if (ipv4) return ipv4
+
+  const trace = await fetchText(TRACE_URL)
+  if (!trace) return undefined
+  for (const line of trace.split('\n')) {
+    if (line.startsWith('ip=')) return line.slice(3).trim() || undefined
+  }
+  return undefined
 }
 
 /** Локальный IPv4 активного интерфейса; undefined, если интерфейс не найден. */

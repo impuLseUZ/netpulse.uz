@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Play, Square, Activity, Loader2 } from 'lucide-react'
 import type { ContinuousTick, PingResult } from '@shared/pingport-types'
+import { Button, Input, Card, StatusDot, PulseTrace } from '@/components/ui'
 
 interface LogLine {
   seq: number
@@ -79,77 +80,94 @@ export function PingTab(): JSX.Element {
 
   return (
     <div>
-      <input
+      <Input
         value={host}
         onChange={(e) => setHost(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void runOnce()}
         placeholder={t('pingport.hostPlaceholder')}
-        className="w-full px-4 py-2.5 rounded-lg bg-surface border border-border text-sm font-mono outline-none focus:border-accent mb-4"
+        className="mb-4"
       />
 
       <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => void runOnce()}
-          disabled={loading || !host.trim() || running}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-fg text-sm disabled:opacity-50"
-        >
+        <Button variant="primary" onClick={() => void runOnce()} disabled={loading || !host.trim() || running}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Activity size={16} />}
           {t('pingport.pingOnce')}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={running ? 'danger' : 'secondary'}
           onClick={() => void toggleContinuous()}
           disabled={!host.trim()}
-          className={[
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm border disabled:opacity-50',
-            running ? 'bg-danger text-white border-danger' : 'bg-surface border-border hover:text-fg'
-          ].join(' ')}
         >
           {running ? <Square size={16} /> : <Play size={16} />}
           {running ? t('pingport.stop') : t('pingport.continuous')}
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {ping && !running && (
-        <div className="mb-6 p-3 rounded-lg bg-surface border border-border">
+        <Card className="mb-6 p-3">
           <div className="flex items-center gap-2">
-            <span className={['inline-block w-2.5 h-2.5 rounded-full', ping.alive ? 'bg-ok' : 'bg-danger'].join(' ')} />
+            <StatusDot tone={ping.alive ? 'ok' : 'danger'} />
             <span className="text-sm font-medium">
               {ping.host} — {ping.alive ? t('pingport.online') : t('pingport.offline')}
             </span>
             {ping.timeMs !== undefined && (
-              <span className="text-sm text-muted font-mono ml-auto">{ping.timeMs} ms</span>
+              <span className="text-sm text-muted font-mono tabular-nums ml-auto">{ping.timeMs} ms</span>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {(running || log.length > 0) && (
         <div>
-          {stats && (
-            <div className="flex flex-wrap gap-4 text-xs text-muted mb-2">
-              <span>{t('pingport.sent')}: {stats.sent}</span>
-              <span>{t('pingport.lost')}: {stats.lost} ({stats.lossPct}%)</span>
-              {stats.min !== undefined && <span>min {stats.min}</span>}
-              {stats.avg !== undefined && <span>avg {stats.avg}</span>}
-              {stats.max !== undefined && <span>max {stats.max}</span>}
-            </div>
-          )}
-          <div className="rounded-lg border border-border bg-surface p-3 h-72 overflow-y-auto font-mono text-xs">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-muted mb-2">
+            {running && <PulseTrace active color="accent" />}
+            {stats && (
+              <>
+                <span>
+                  {t('pingport.sent')}: <span className="font-mono tabular-nums">{stats.sent}</span>
+                </span>
+                <span>
+                  {t('pingport.lost')}:{' '}
+                  <span className="font-mono tabular-nums">
+                    {stats.lost} ({stats.lossPct}%)
+                  </span>
+                </span>
+                {stats.min !== undefined && (
+                  <span>
+                    min <span className="font-mono tabular-nums">{stats.min}</span>
+                  </span>
+                )}
+                {stats.avg !== undefined && (
+                  <span>
+                    avg <span className="font-mono tabular-nums">{stats.avg}</span>
+                  </span>
+                )}
+                {stats.max !== undefined && (
+                  <span>
+                    max <span className="font-mono tabular-nums">{stats.max}</span>
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <Card className="p-3 h-72 overflow-y-auto font-mono text-xs">
             {log.map((l) => (
               <div key={l.seq} className="flex gap-3 py-0.5">
-                <span className="text-muted">{new Date(l.timestamp).toLocaleTimeString()}</span>
-                <span className="text-muted">#{l.seq}</span>
+                <span className="text-muted tabular-nums">{new Date(l.timestamp).toLocaleTimeString()}</span>
+                <span className="text-muted tabular-nums">#{l.seq}</span>
                 {l.alive ? (
-                  <span className="text-ok">{t('pingport.reply')} {l.timeMs} ms</span>
+                  <span className="text-ok tabular-nums">
+                    {t('pingport.reply')} {l.timeMs} ms
+                  </span>
                 ) : (
                   <span className="text-danger">{t('pingport.timeout')}</span>
                 )}
               </div>
             ))}
             <div ref={logEndRef} />
-          </div>
+          </Card>
         </div>
       )}
     </div>

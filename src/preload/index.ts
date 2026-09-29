@@ -53,6 +53,7 @@ import {
   LocalListQuery,
   LocalListResult,
   SftpTransferQuery,
+  SftpCancelQuery,
 } from "@shared/ssh-types";
 
 /**
@@ -243,6 +244,9 @@ const api = {
 
     transferToLocal: (query: SftpTransferQuery): Promise<IpcResult<void>> =>
       ipcRenderer.invoke(CHANNELS.sftp.transferToLocal, query),
+
+    cancelTransfer: (query: SftpCancelQuery): Promise<IpcResult<boolean>> =>
+      ipcRenderer.invoke(CHANNELS.sftp.cancelTransfer, query),
 
     onProgress: (cb: (ev: SftpProgressEvent) => void): (() => void) => {
       const listener = (_e: IpcRendererEvent, ev: SftpProgressEvent): void => cb(ev);

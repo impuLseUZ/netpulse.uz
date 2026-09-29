@@ -177,9 +177,15 @@ export interface SftpProgressEvent {
   bytesPerSecond: number
   /** Оставшееся время в секундах (−1 если неизвестно). */
   eta: number
-  /** Статус: 'active' | 'done' | 'error' */
-  status: 'active' | 'done' | 'error'
+  /** Статус: 'active' | 'done' | 'error' | 'cancelled' */
+  status: 'active' | 'done' | 'error' | 'cancelled'
   error?: string
+}
+
+/** Запрос на отмену передачи файла. */
+export interface SftpCancelQuery {
+  sessionId: string
+  transferId: string
 }
 
 /** Запись локальной файловой системы (левая панель). */

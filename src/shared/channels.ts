@@ -107,6 +107,8 @@ export const CHANNELS = {
     transferToRemote: "sftp:transferToRemote",
     /** Перенести файл remote → local (кнопка Download). */
     transferToLocal: "sftp:transferToLocal",
+    /** Отменить активную передачу файла. */
+    cancelTransfer: "sftp:cancelTransfer",
   },
 } as const;
 

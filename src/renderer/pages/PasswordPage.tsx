@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Copy, Check, RefreshCw, KeyRound } from 'lucide-react'
+import { Button, ProgressBar, PageContainer, PageHeader } from '@/components/ui'
 import {
   generatePassword,
   estimateStrength,
@@ -9,11 +10,11 @@ import {
   type StrengthLevel
 } from '@shared/password'
 
-const STRENGTH_COLOR: Record<StrengthLevel, string> = {
-  weak: 'bg-danger',
-  fair: 'bg-warn',
-  good: 'bg-accent',
-  strong: 'bg-ok'
+const STRENGTH_TONE: Record<StrengthLevel, 'danger' | 'warn' | 'accent' | 'ok'> = {
+  weak: 'danger',
+  fair: 'warn',
+  good: 'accent',
+  strong: 'ok'
 }
 
 export function PasswordPage(): JSX.Element {
@@ -75,31 +76,20 @@ export function PasswordPage(): JSX.Element {
   ]
 
   return (
-    <div className="p-8 max-w-2xl mx-auto w-full">
-      <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-        <KeyRound size={20} /> {t('nav.password')}
-      </h2>
+    <PageContainer maxWidth="max-w-2xl">
+      <PageHeader icon={KeyRound} title={t('nav.password')} />
 
       {/* Поле пароля */}
       <div className="flex gap-2 mb-2">
-        <div className="flex-1 px-4 py-3 rounded-lg bg-surface border border-border font-mono text-lg break-all min-h-[3.25rem] flex items-center">
+        <div className="flex-1 px-4 py-3 rounded-control bg-surface-2 border border-border font-mono tabular-nums text-lg break-all min-h-[3.25rem] flex items-center">
           {password || <span className="text-muted text-sm">—</span>}
         </div>
-        <button
-          onClick={copy}
-          disabled={!password}
-          title={t('password.copy')}
-          className="px-3 rounded-lg bg-surface-2 border border-border hover:text-fg disabled:opacity-50"
-        >
+        <Button variant="secondary" onClick={copy} disabled={!password} title={t('password.copy')} className="px-3">
           {copied ? <Check size={18} className="text-ok" /> : <Copy size={18} />}
-        </button>
-        <button
-          onClick={regenerate}
-          title={t('password.regenerate')}
-          className="px-3 rounded-lg bg-accent text-accent-fg"
-        >
+        </Button>
+        <Button variant="primary" onClick={regenerate} title={t('password.regenerate')} className="px-3">
           <RefreshCw size={18} />
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-danger text-sm mb-4">{error}</p>}
@@ -109,16 +99,11 @@ export function PasswordPage(): JSX.Element {
         <div className="mb-6">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-muted">{t('password.strength')}</span>
-            <span className="text-muted">
+            <span className="text-muted font-mono tabular-nums">
               {t(`password.level.${strength.level}`)} · {strength.bits} {t('password.bits')}
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${STRENGTH_COLOR[strength.level]}`}
-              style={{ width: `${Math.round(strength.fraction * 100)}%` }}
-            />
-          </div>
+          <ProgressBar fraction={strength.fraction} tone={STRENGTH_TONE[strength.level]} />
         </div>
       )}
 
@@ -126,7 +111,7 @@ export function PasswordPage(): JSX.Element {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
           <label className="text-sm text-muted">{t('password.length')}</label>
-          <span className="text-sm font-mono">{opts.length}</span>
+          <span className="text-sm font-mono tabular-nums">{opts.length}</span>
         </div>
         <input
           type="range"
@@ -143,7 +128,7 @@ export function PasswordPage(): JSX.Element {
         {checks.map((c) => (
           <label
             key={c.key}
-            className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-surface border border-border cursor-pointer hover:border-accent transition-colors"
+            className="flex items-center gap-3 px-4 py-2.5 rounded-control bg-surface border border-border cursor-pointer hover:border-border-strong transition-colors"
           >
             <input
               type="checkbox"
@@ -155,7 +140,7 @@ export function PasswordPage(): JSX.Element {
           </label>
         ))}
 
-        <label className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-surface border border-border cursor-pointer hover:border-accent transition-colors">
+        <label className="flex items-center gap-3 px-4 py-2.5 rounded-control bg-surface border border-border cursor-pointer hover:border-border-strong transition-colors">
           <input
             type="checkbox"
             checked={Boolean(opts.excludeSimilar)}
@@ -166,9 +151,7 @@ export function PasswordPage(): JSX.Element {
         </label>
       </div>
 
-      {noSetSelected && (
-        <p className="text-warn text-xs mt-3">{t('password.noSet')}</p>
-      )}
-    </div>
+      {noSetSelected && <p className="text-warn text-xs mt-3">{t('password.noSet')}</p>}
+    </PageContainer>
   )
 }

@@ -2,6 +2,8 @@ export default {
   app: {
     name: "NetPulse",
     tagline: "Пульс вашей сети",
+    externalIp: "Внешний",
+    localIp: "Локальный",
   },
   nav: {
     scanner: "Сканер сети",

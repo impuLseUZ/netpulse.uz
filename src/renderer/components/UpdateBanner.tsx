@@ -11,6 +11,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { useUpdaterStore } from '@/store/updater'
+import { Button } from '@/components/ui'
 
 export function UpdateBanner(): JSX.Element | null {
   const { t } = useTranslation()
@@ -54,13 +55,10 @@ export function UpdateBanner(): JSX.Element | null {
         )}
 
         {/* Кнопка скачивания → открывает GitHub */}
-        <a
-          onClick={handleDownload}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-accent text-accent-fg text-xs font-medium cursor-pointer hover:opacity-90 transition-opacity shrink-0"
-        >
+        <Button variant="primary" size="sm" onClick={handleDownload} className="shrink-0">
           <ExternalLink size={13} />
           {t('update.downloadFromGithub')}
-        </a>
+        </Button>
 
         {/* Закрыть баннер */}
         <button
@@ -75,7 +73,7 @@ export function UpdateBanner(): JSX.Element | null {
       {/* Release notes */}
       {showNotes && info?.releaseNotes && (
         <div className="px-4 pb-3">
-          <div className="rounded-md bg-surface border border-border p-3 max-h-48 overflow-y-auto">
+          <div className="rounded-control bg-surface border border-border p-3 max-h-48 overflow-y-auto">
             <p className="text-xs font-semibold mb-2 text-muted">
               {t('update.notesTitle', { version })}
             </p>

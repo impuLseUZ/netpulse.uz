@@ -13,6 +13,7 @@ import type {
   LocalListQuery,
   LocalListResult,
   SftpTransferQuery,
+  SftpCancelQuery,
 } from '@shared/ssh-types'
 import { handle } from './handle'
 import {
@@ -24,7 +25,8 @@ import {
   makeDirectory,
   renameEntry,
   deleteEntry,
-  listLocalDirectory
+  listLocalDirectory,
+  cancelTransfer
 } from '../services/sftp'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -73,6 +75,12 @@ export function registerSftpIpc(): void {
     const filename = path.basename(q.remotePath)
     const localDest = path.join(q.localPath, filename)
     await downloadFile({ sessionId: q.sessionId, remotePath: q.remotePath, localPath: localDest })
+  })
+
+  /** Отменить активную передачу (upload/download). */
+  handle<boolean>(CHANNELS.sftp.cancelTransfer, (arg) => {
+    const q = arg as SftpCancelQuery
+    return cancelTransfer(q.transferId)
   })
 
   // ── Файловые операции (remote) ───────────────────────────────────────────

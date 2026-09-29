@@ -11,7 +11,7 @@ export function ModulePlaceholder({ titleKey, icon: Icon }: Props): JSX.Element 
   const name = t(`nav.${titleKey}`)
   return (
     <div className="h-full flex flex-col items-center justify-center text-center px-8">
-      <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center mb-5">
+      <div className="w-16 h-16 rounded-card bg-surface-2 flex items-center justify-center mb-5">
         <Icon size={30} className="text-accent" />
       </div>
       <h2 className="text-xl font-semibold mb-2">{name}</h2>

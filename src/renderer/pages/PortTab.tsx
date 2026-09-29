@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Search, Loader2 } from 'lucide-react'
 import { parsePorts } from '@shared/ports'
 import type { PortResult } from '@shared/pingport-types'
+import { Button, Input, TableShell, Table, THead, TH, TR, TD } from '@/components/ui'
 
 export function PortTab(): JSX.Element {
   const { t } = useTranslation()
@@ -35,64 +36,62 @@ export function PortTab(): JSX.Element {
 
   return (
     <div>
-      <input
+      <Input
         value={host}
         onChange={(e) => setHost(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void runCheck()}
         placeholder={t('pingport.hostPlaceholder')}
-        className="w-full px-4 py-2.5 rounded-lg bg-surface border border-border text-sm font-mono outline-none focus:border-accent mb-4"
+        className="mb-4"
       />
 
       <label className="block text-xs text-muted mb-1">{t('pingport.ports')}</label>
-      <input
+      <Input
         value={portsStr}
         onChange={(e) => setPortsStr(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && void runCheck()}
         placeholder="22,80,443,8000-8010"
-        className="w-full px-3 py-2 rounded-md bg-surface border border-border text-sm font-mono outline-none focus:border-accent mb-1"
+        className="mb-1"
       />
       <p className="text-xs text-muted mb-4">{t('pingport.portsHint')}</p>
 
-      <button
-        onClick={() => void runCheck()}
-        disabled={loading || !host.trim()}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-fg text-sm disabled:opacity-50 mb-6"
-      >
+      <Button variant="primary" onClick={() => void runCheck()} disabled={loading || !host.trim()} className="mb-6">
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
         {t('pingport.check')}
-      </button>
+      </Button>
 
       {error && <p className="text-danger text-sm mb-4">{error}</p>}
 
       {results && results.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-2 text-left text-muted text-xs">
+        <TableShell>
+          <Table>
+            <THead>
               <tr>
-                <th className="px-3 py-2 font-medium">{t('pingport.port')}</th>
-                <th className="px-3 py-2 font-medium">{t('pingport.status')}</th>
-                <th className="px-3 py-2 font-medium">{t('pingport.service')}</th>
-                <th className="px-3 py-2 font-medium text-right">ms</th>
+                <TH>{t('pingport.port')}</TH>
+                <TH>{t('pingport.status')}</TH>
+                <TH>{t('pingport.service')}</TH>
+                <TH className="text-right">ms</TH>
               </tr>
-            </thead>
+            </THead>
             <tbody className="font-mono">
               {results.map((p, i) => (
-                <tr key={i} className="border-t border-border hover:bg-surface-2">
-                  <td className="px-3 py-1.5">{p.port}</td>
-                  <td className="px-3 py-1.5"><StatusBadge status={p.status} /></td>
-                  <td className="px-3 py-1.5 text-muted">{p.service ?? '—'}</td>
-                  <td className="px-3 py-1.5 text-right">{p.timeMs ?? ''}</td>
-                </tr>
+                <TR key={i}>
+                  <TD className="tabular-nums">{p.port}</TD>
+                  <TD>
+                    <StatusLabel status={p.status} />
+                  </TD>
+                  <TD className="text-muted">{p.service ?? '—'}</TD>
+                  <TD className="text-right tabular-nums">{p.timeMs ?? ''}</TD>
+                </TR>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Table>
+        </TableShell>
       )}
     </div>
   )
 }
 
-function StatusBadge({ status }: { status: PortResult['status'] }): JSX.Element {
+function StatusLabel({ status }: { status: PortResult['status'] }): JSX.Element {
   const map: Record<PortResult['status'], string> = {
     open: 'text-ok',
     closed: 'text-danger',

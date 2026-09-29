@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Globe, Network } from 'lucide-react'
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from '@/lib/nav'
 import { useNavStore } from '@/store/nav'
+import { PulseTrace } from '@/components/ui'
 import type { NetAddresses } from '@shared/netinfo-types'
 import type { IpcResult } from '@shared/types'
 
@@ -41,13 +42,16 @@ export function Sidebar(): JSX.Element {
         key={item.id}
         onClick={() => setActive(item.id)}
         className={[
-          'flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors',
+          'group relative flex items-center gap-3 w-full px-3 py-2 rounded-control text-sm font-medium transition-colors duration-150 ease-out',
           isActive
-            ? 'bg-accent text-accent-fg'
+            ? 'bg-accent/12 text-accent'
             : 'text-muted hover:bg-surface-2 hover:text-fg'
         ].join(' ')}
       >
-        <Icon size={18} strokeWidth={2} />
+        {isActive && (
+          <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-accent" />
+        )}
+        <Icon size={17} strokeWidth={2} className="shrink-0" />
         <span>{t(`nav.${item.labelKey}`)}</span>
       </button>
     )
@@ -56,34 +60,29 @@ export function Sidebar(): JSX.Element {
   return (
     <aside className="w-60 shrink-0 h-full bg-surface border-r border-border flex flex-col">
       <div className="px-4 py-5 border-b border-border">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-2.5 h-2.5 rounded-full bg-ok animate-pulse" />
-          <span className="font-semibold text-lg tracking-tight">NetPulse</span>
+        <div className="flex items-center gap-2.5">
+          <PulseTrace width={30} height={13} />
+          <span className="font-semibold text-[15px] tracking-tight">NetPulse</span>
         </div>
-        <p className="text-xs text-muted mt-1">{tagline}</p>
+        <p className="text-[11px] text-muted mt-1">{tagline}</p>
 
         {addr && (addr.external || addr.local) && (
-          <div className="mt-3 space-y-1">
+          <div className="mt-3 space-y-1.5">
             {addr.external && (
-              <div
-                className="flex items-center gap-1.5 text-[11px] text-muted"
-                title={t('app.externalIp')}
-              >
-                <Globe size={12} className="shrink-0" />
-                <span className="font-mono truncate">{addr.external}</span>
+              <div className="flex items-center gap-1.5 text-[11px]" title={t('app.externalIp')}>
+                <Globe size={12} className="shrink-0 text-muted" />
+                <span className="text-muted/70 shrink-0">{t('app.externalIp')}</span>
+                <span className="font-mono tabular-nums truncate text-fg/80">{addr.external}</span>
               </div>
             )}
             {addr.local && (
               <div
-                className="flex items-center gap-1.5 text-[11px] text-muted"
-                title={
-                  addr.ifaceName
-                    ? `${t('app.localIp')} · ${addr.ifaceName}`
-                    : t('app.localIp')
-                }
+                className="flex items-center gap-1.5 text-[11px]"
+                title={addr.ifaceName ? `${t('app.localIp')} · ${addr.ifaceName}` : t('app.localIp')}
               >
-                <Network size={12} className="shrink-0" />
-                <span className="font-mono truncate">{addr.local}</span>
+                <Network size={12} className="shrink-0 text-muted" />
+                <span className="text-muted/70 shrink-0">{t('app.localIp')}</span>
+                <span className="font-mono tabular-nums truncate text-fg/80">{addr.local}</span>
               </div>
             )}
           </div>

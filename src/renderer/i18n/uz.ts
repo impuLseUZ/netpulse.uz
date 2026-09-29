@@ -2,6 +2,8 @@ export default {
   app: {
     name: "NetPulse",
     tagline: "Tarmoq pulsini o'lchang",
+    externalIp: "Tashqi",
+    localIp: "Lokal",
   },
   nav: {
     scanner: "Tarmoq skaneri",

@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Settings } from 'lucide-react'
 import { useAppStore } from '@/store/app'
 import { useUpdaterStore } from '@/store/updater'
+import { Button, Input, Pill, PageContainer, PageHeader, Toggle } from '@/components/ui'
 import type { ThemeMode, Locale } from '@shared/types'
 
 export function SettingsPage(): JSX.Element {
@@ -23,9 +24,7 @@ export function SettingsPage(): JSX.Element {
       case 'not-available':
         return t('update.notAvailable')
       case 'downloading':
-        return t('update.downloading', {
-          percent: Math.round(updater.state.progress?.percent ?? 0)
-        })
+        return t('update.downloading', { percent: Math.round(updater.state.progress?.percent ?? 0) })
       case 'downloaded':
         return t('update.downloaded')
       case 'error':
@@ -36,20 +35,16 @@ export function SettingsPage(): JSX.Element {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto w-full">
-      <h2 className="text-xl font-semibold mb-6">{t('settings.title')}</h2>
+    <PageContainer maxWidth="max-w-2xl">
+      <PageHeader icon={Settings} title={t('settings.title')} />
 
       <div className="space-y-6">
         <Field label={t('common.theme')}>
           <div className="flex gap-2">
             {themes.map((th) => (
-              <Choice
-                key={th}
-                active={settings.theme === th}
-                onClick={() => void update({ theme: th })}
-              >
+              <Pill key={th} active={settings.theme === th} onClick={() => void update({ theme: th })} size="md">
                 {t(`common.${th}`)}
-              </Choice>
+              </Pill>
             ))}
           </div>
         </Field>
@@ -57,41 +52,33 @@ export function SettingsPage(): JSX.Element {
         <Field label={t('common.language')}>
           <div className="flex gap-2">
             {locales.map((lc) => (
-              <Choice
-                key={lc}
-                active={settings.locale === lc}
-                onClick={() => void update({ locale: lc })}
-              >
+              <Pill key={lc} active={settings.locale === lc} onClick={() => void update({ locale: lc })} size="md">
                 {{ ru: 'Русский', en: 'English', uz: "O'zbekcha" }[lc]}
-              </Choice>
+              </Pill>
             ))}
           </div>
         </Field>
 
         <Field label={t('common.concurrency')}>
-          <input
+          <Input
             type="number"
             min={1}
             max={1024}
             value={settings.concurrencyLimit}
-            onChange={(e) =>
-              void update({ concurrencyLimit: Number(e.target.value) || 1 })
-            }
-            className="w-32 px-3 py-1.5 rounded-md bg-surface-2 border border-border text-sm outline-none focus:border-accent"
+            onChange={(e) => void update({ concurrencyLimit: Number(e.target.value) || 1 })}
+            className="w-32 h-9"
           />
         </Field>
 
         <Field label={t('common.timeout')}>
-          <input
+          <Input
             type="number"
             min={100}
             max={60000}
             step={100}
             value={settings.defaultTimeoutMs}
-            onChange={(e) =>
-              void update({ defaultTimeoutMs: Number(e.target.value) || 100 })
-            }
-            className="w-32 px-3 py-1.5 rounded-md bg-surface-2 border border-border text-sm outline-none focus:border-accent"
+            onChange={(e) => void update({ defaultTimeoutMs: Number(e.target.value) || 100 })}
+            className="w-32 h-9"
           />
         </Field>
 
@@ -100,24 +87,14 @@ export function SettingsPage(): JSX.Element {
           <h3 className="text-sm font-semibold mb-4">{t('settings.updatesSection')}</h3>
           <div className="space-y-4">
             <Field label={t('settings.checkOnStart')}>
-              <Toggle
-                value={settings.updateCheckOnStart}
-                onChange={(v) => void update({ updateCheckOnStart: v })}
-              />
+              <Toggle checked={settings.updateCheckOnStart} onChange={(v) => void update({ updateCheckOnStart: v })} />
             </Field>
-<div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <span className="text-sm text-muted">{updateStatusText()}</span>
-              <button
-                onClick={() => void updater.check()}
-                disabled={updater.state.status === 'checking'}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-surface-2 border border-border text-sm hover:text-fg disabled:opacity-50"
-              >
-                <RefreshCw
-                  size={14}
-                  className={updater.state.status === 'checking' ? 'animate-spin' : ''}
-                />
+              <Button size="sm" variant="secondary" onClick={() => void updater.check()} disabled={updater.state.status === 'checking'}>
+                <RefreshCw size={14} className={updater.state.status === 'checking' ? 'animate-spin' : ''} />
                 {t('update.check')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -130,21 +107,19 @@ export function SettingsPage(): JSX.Element {
             <p>
               {t('settings.rawSockets')}:{' '}
               <span className={platform.rawSocketsAvailable ? 'text-ok' : 'text-warn'}>
-                {platform.rawSocketsAvailable
-                  ? t('settings.available')
-                  : t('settings.unavailable')}
+                {platform.rawSocketsAvailable ? t('settings.available') : t('settings.unavailable')}
               </span>
             </p>
             <p>
               {t('settings.version')}:{' '}
-              <span className="text-fg font-mono">
+              <span className="text-fg font-mono tabular-nums">
                 {platform.appVersion} · Electron {platform.electronVersion}
               </span>
             </p>
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   )
 }
 
@@ -154,56 +129,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-sm">{label}</span>
       {children}
     </div>
-  )
-}
-
-function Choice({
-  active,
-  onClick,
-  children
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}): JSX.Element {
-  return (
-    <button
-      onClick={onClick}
-      className={[
-        'px-3 py-1.5 rounded-md text-sm transition-colors border',
-        active
-          ? 'bg-accent text-accent-fg border-accent'
-          : 'bg-surface-2 text-muted border-border hover:text-fg'
-      ].join(' ')}
-    >
-      {children}
-    </button>
-  )
-}
-
-function Toggle({
-  value,
-  onChange
-}: {
-  value: boolean
-  onChange: (v: boolean) => void
-}): JSX.Element {
-  return (
-    <button
-      onClick={() => onChange(!value)}
-      className={[
-        'relative w-11 h-6 rounded-full transition-colors shrink-0',
-        value ? 'bg-accent' : 'bg-surface-2 border border-border'
-      ].join(' ')}
-      role="switch"
-      aria-checked={value}
-    >
-      <span
-        className={[
-          'absolute top-0.5 left-0.5 w-5 h-5 rounded-full shadow transition-transform duration-200',
-          value ? 'translate-x-[22px] bg-white' : 'translate-x-0 bg-white/80'
-        ].join(' ')}
-      />
-    </button>
   )
 }

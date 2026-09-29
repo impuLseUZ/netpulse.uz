@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Play, Square, Trash2, Download, Gauge, Wifi } from 'lucide-react'
 import { useSpeedtestStore } from '@/store/speedtest'
 import { FirewallWarning } from '@/components/speedtest/FirewallWarning'
+import { Button, Card, PageContainer, PageHeader, MetricRow, MetricSecondary, TableShell, Table, THead, TH, TR, TD, Badge } from '@/components/ui'
 import type { SpeedtestHistoryEntry, SpeedtestPhase } from '@shared/speedtest-types'
 
 /** Верхняя граница спидометра (Мбит/с). */
@@ -79,28 +80,6 @@ function Speedometer({
         Mbps
       </text>
     </svg>
-  )
-}
-
-function MetricCard({
-  label,
-  value,
-  unit,
-  highlight,
-}: {
-  label: string
-  value: string
-  unit: string
-  highlight?: boolean
-}): JSX.Element {
-  return (
-    <div className="rounded-lg border border-border bg-surface p-4 text-center">
-      <div className="text-xs text-muted mb-1">{label}</div>
-      <div className={`text-2xl font-semibold ${highlight ? 'text-accent' : ''}`}>
-        {value}
-        <span className="text-sm text-muted ml-1">{unit}</span>
-      </div>
-    </div>
   )
 }
 
@@ -186,26 +165,27 @@ export function SpeedtestPage(): JSX.Element {
   })()
 
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full">
-      <h2 className="text-xl font-semibold mb-2 flex items-center gap-2">
-        <Gauge size={20} /> {t('nav.speedtest')}
-      </h2>
-
-      {/* Шапка: внешний IP / провайдер */}
-      <div className="flex items-center gap-2 text-xs text-muted mb-4">
-        <Wifi size={14} />
-        {netInfoLoading ? (
-          <span>{t('speedtest.detecting')}</span>
-        ) : netInfo?.ip ? (
-          <span className="font-mono">
-            {netInfo.ip}
-            {netInfo.isp     && <span className="text-muted"> · {netInfo.isp}</span>}
-            {netInfo.country && <span className="text-muted"> · {netInfo.country}</span>}
+    <PageContainer>
+      <PageHeader
+        icon={Gauge}
+        title={t('nav.speedtest')}
+        meta={
+          <span className="flex items-center gap-1.5">
+            <Wifi size={13} />
+            {netInfoLoading ? (
+              t('speedtest.detecting')
+            ) : netInfo?.ip ? (
+              <span className="font-mono">
+                {netInfo.ip}
+                {netInfo.isp && <span> · {netInfo.isp}</span>}
+                {netInfo.country && <span> · {netInfo.country}</span>}
+              </span>
+            ) : (
+              t('speedtest.noNetInfo')
+            )}
           </span>
-        ) : (
-          <span>{t('speedtest.noNetInfo')}</span>
-        )}
-      </div>
+        }
+      />
 
       {/* Предупреждение о фаерволе (показывается после preflight) */}
       {preflight && (preflight.hint !== 'ok' || usedFallback) && (
@@ -213,7 +193,7 @@ export function SpeedtestPage(): JSX.Element {
       )}
 
       {/* Спидометр + кнопка */}
-      <div className="rounded-lg border border-border bg-surface p-6 flex flex-col items-center mb-4">
+      <Card className="p-6 flex flex-col items-center mb-4">
         <Speedometer value={gaugeValue} phase={phase} />
 
         {/* Статус-строка */}
@@ -230,112 +210,87 @@ export function SpeedtestPage(): JSX.Element {
         </div>
 
         {!running ? (
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => {
               console.info('[speedtest] start button clicked')
               start()
             }}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-accent text-accent-fg text-sm font-medium"
+            className="px-6"
           >
             <Play size={16} />
-            {phase === 'done' || phase === 'error'
-              ? t('speedtest.restart')
-              : t('speedtest.start')}
-          </button>
+            {phase === 'done' || phase === 'error' ? t('speedtest.restart') : t('speedtest.start')}
+          </Button>
         ) : (
-          <button
-            onClick={stop}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-danger text-white text-sm font-medium"
-          >
+          <Button variant="danger" size="md" onClick={stop} className="px-6">
             <Square size={16} />
             {t('speedtest.stop')}
-          </button>
+          </Button>
         )}
 
         {phase === 'error' && errorText && (
           <p className="text-xs text-danger mt-3 text-center max-w-md">{errorText}</p>
         )}
-      </div>
+      </Card>
 
       {/* Метрики */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <MetricCard
-          label={t('speedtest.download')}
-          value={fmt(current.downloadMbps)}
-          unit="Mbps"
-          highlight={phase === 'download'}
-        />
-        <MetricCard
-          label={t('speedtest.upload')}
-          value={fmt(current.uploadMbps)}
-          unit="Mbps"
-          highlight={phase === 'upload'}
-        />
-        <MetricCard label={t('speedtest.ping')}   value={fmt(current.pingMs)}   unit="ms" />
-        <MetricCard label={t('speedtest.jitter')} value={fmt(current.jitterMs)} unit="ms" />
-      </div>
+      <MetricRow>
+        <MetricSecondary label={t('speedtest.download')} value={fmt(current.downloadMbps)} unit="Mbps" active={phase === 'download'} />
+        <MetricSecondary label={t('speedtest.upload')} value={fmt(current.uploadMbps)} unit="Mbps" active={phase === 'upload'} />
+        <MetricSecondary label={t('speedtest.ping')} value={fmt(current.pingMs)} unit="ms" />
+        <MetricSecondary label={t('speedtest.jitter')} value={fmt(current.jitterMs)} unit="ms" />
+      </MetricRow>
 
       {/* История сессии */}
       {history.length > 0 && (
-        <div>
+        <div className="mt-8">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium">{t('speedtest.history')}</h3>
             <div className="flex gap-2">
-              <button
-                onClick={() => exportHistoryCsv(history)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs hover:bg-surface-2"
-              >
+              <Button size="sm" variant="secondary" onClick={() => exportHistoryCsv(history)}>
                 <Download size={14} /> CSV
-              </button>
-              <button
-                onClick={clearHistory}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-xs hover:bg-surface-2"
-              >
+              </Button>
+              <Button size="sm" variant="secondary" onClick={clearHistory}>
                 <Trash2 size={14} /> {t('speedtest.clear')}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="rounded-lg border border-border bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted bg-surface-2">
+          <TableShell>
+            <Table>
+              <THead>
                 <tr>
-                  <th className="text-left font-medium px-3 py-2">{t('speedtest.time')}</th>
-                  <th className="text-right font-medium px-3 py-2">↓ Mbps</th>
-                  <th className="text-right font-medium px-3 py-2">↑ Mbps</th>
-                  <th className="text-right font-medium px-3 py-2">{t('speedtest.ping')}</th>
-                  <th className="text-right font-medium px-3 py-2">{t('speedtest.jitter')}</th>
-                  <th className="text-left font-medium px-3 py-2">{t('speedtest.method')}</th>
+                  <TH>{t('speedtest.time')}</TH>
+                  <TH className="text-right">↓ Mbps</TH>
+                  <TH className="text-right">↑ Mbps</TH>
+                  <TH className="text-right">{t('speedtest.ping')}</TH>
+                  <TH className="text-right">{t('speedtest.jitter')}</TH>
+                  <TH>{t('speedtest.method')}</TH>
                 </tr>
-              </thead>
+              </THead>
               <tbody>
                 {history.map((h) => (
-                  <tr key={h.id} className="border-t border-border">
-                    <td className="px-3 py-2 text-muted">
-                      {new Date(h.timestamp).toLocaleTimeString()}
-                    </td>
-                    <td className="px-3 py-2 text-right font-mono">{fmt(h.downloadMbps)}</td>
-                    <td className="px-3 py-2 text-right font-mono">{fmt(h.uploadMbps)}</td>
-                    <td className="px-3 py-2 text-right font-mono">{fmt(h.pingMs)}</td>
-                    <td className="px-3 py-2 text-right font-mono">{fmt(h.jitterMs)}</td>
-                    <td className="px-3 py-2">
+                  <TR key={h.id}>
+                    <TD className="text-muted">{new Date(h.timestamp).toLocaleTimeString()}</TD>
+                    <TD className="text-right font-mono tabular-nums">{fmt(h.downloadMbps)}</TD>
+                    <TD className="text-right font-mono tabular-nums">{fmt(h.uploadMbps)}</TD>
+                    <TD className="text-right font-mono tabular-nums">{fmt(h.pingMs)}</TD>
+                    <TD className="text-right font-mono tabular-nums">{fmt(h.jitterMs)}</TD>
+                    <TD>
                       {h.isFallback ? (
-                        <span className="text-xs text-yellow-500 opacity-80">
-                          {t('speedtest.firewall.method_fallback')}
-                        </span>
+                        <Badge tone="warn">{t('speedtest.firewall.method_fallback')}</Badge>
                       ) : (
-                        <span className="text-xs text-muted opacity-60">
-                          Cloudflare
-                        </span>
+                        <Badge tone="neutral">Cloudflare</Badge>
                       )}
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Table>
+          </TableShell>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 }

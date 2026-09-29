@@ -52,26 +52,29 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
       fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
       fontSize: 14,
       lineHeight: 1.2,
+      // Палитра выведена из токенов дизайн-системы (NOC/oscilloscope): cyan —
+      // это --accent, фон/текст — --term-bg/--term-fg. Держит терминал в
+      // одном визуальном языке с остальным приложением.
       theme: {
         background: '#0b0e14',
-        foreground: '#cdd6f4',
-        cursor: '#f5c2e7',
-        black: '#45475a',
-        red: '#f38ba8',
-        green: '#a6e3a1',
-        yellow: '#f9e2af',
-        blue: '#89b4fa',
-        magenta: '#f5c2e7',
-        cyan: '#94e2d5',
-        white: '#bac2de',
-        brightBlack: '#585b70',
-        brightRed: '#f38ba8',
-        brightGreen: '#a6e3a1',
-        brightYellow: '#f9e2af',
-        brightBlue: '#89b4fa',
-        brightMagenta: '#f5c2e7',
-        brightCyan: '#94e2d5',
-        brightWhite: '#a6adc8',
+        foreground: '#e3e9f2',
+        cursor: '#2ee6c8',
+        black: '#1c2333',
+        red: '#ef5b5b',
+        green: '#3ddc84',
+        yellow: '#f5a623',
+        blue: '#5b9dd9',
+        magenta: '#c792ea',
+        cyan: '#2ee6c8',
+        white: '#c3cad6',
+        brightBlack: '#4a5262',
+        brightRed: '#f57a7a',
+        brightGreen: '#5ee89f',
+        brightYellow: '#f7b94e',
+        brightBlue: '#7db3e3',
+        brightMagenta: '#d6a8f0',
+        brightCyan: '#5cf0d8',
+        brightWhite: '#e3e9f2',
       },
       allowProposedApi: true,
     })
@@ -153,7 +156,7 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-[#0b0e14]"
+      className="w-full h-full bg-term"
       onClick={() => termRef.current?.focus()}
       onContextMenu={handleContextMenu}
     />
