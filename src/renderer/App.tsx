@@ -15,6 +15,11 @@ import { TracerPage } from '@/pages/TracerPage'
 import { SpeedtestPage } from '@/pages/SpeedtestPage'
 import { PasswordPage } from '@/pages/PasswordPage'
 import { SshPage } from '@/pages/SshPage'
+import { SubdomainsPage } from '@/pages/SubdomainsPage'
+import { PortScannerPage } from '@/pages/PortScannerPage'
+import { LocalPortsPage } from '@/pages/LocalPortsPage'
+import { SshKeysPage } from '@/pages/SshKeysPage'
+import { HttpInspectorPage } from '@/pages/HttpInspectorPage'
 
 export function App(): JSX.Element {
   const initApp = useAppStore((s) => s.init)
@@ -41,6 +46,11 @@ export function App(): JSX.Element {
     if (!item) return <SettingsPage />
     if (active === 'ipcalc') return <IpCalcPage />
     if (active === 'dns') return <DnsPage />
+    if (active === 'subdomains') return <SubdomainsPage />
+    if (active === 'portscan') return <PortScannerPage />
+    if (active === 'localports') return <LocalPortsPage />
+    if (active === 'sshkeys') return <SshKeysPage />
+    if (active === 'httpinspect') return <HttpInspectorPage />
     if (active === 'pingport') return <PingPortPage />
     if (active === 'scanner') return <ScannerPage />
     if (active === 'tracer') return <TracerPage />
@@ -56,7 +66,12 @@ export function App(): JSX.Element {
       <Sidebar />
       <div className="flex-1 h-full flex flex-col">
         <UpdateBanner />
-        <main className="flex-1 overflow-y-auto bg-bg">{renderContent()}</main>
+        {/* SSH-клиент сам управляет прокруткой внутри своих панелей (h-full,
+            overflow-hidden на корне) — если дать ещё и overflow-y-auto тут,
+            любой субпиксельный оверфлоу создаёт лишний скроллбар поверх всего окна. */}
+        <main className={`flex-1 bg-bg ${active === 'ssh' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+          {renderContent()}
+        </main>
       </div>
     </div>
   )

@@ -8,6 +8,11 @@ import {
   KeyRound,
   Terminal,
   Settings,
+  ListTree,
+  ScanSearch,
+  ServerCog,
+  KeySquare,
+  Webhook,
   type LucideIcon
 } from 'lucide-react'
 
@@ -17,8 +22,13 @@ export type ModuleId =
   | 'ipcalc'
   | 'pingport'
   | 'dns'
+  | 'subdomains'
+  | 'portscan'
+  | 'localports'
+  | 'httpinspect'
   | 'speedtest'
   | 'password'
+  | 'sshkeys'
   | 'ssh'
   | 'settings'
 
@@ -31,12 +41,17 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'scanner', labelKey: 'scanner', icon: Radar },
+  { id: 'portscan', labelKey: 'portscan', icon: ScanSearch },
+  { id: 'localports', labelKey: 'localports', icon: ServerCog },
   { id: 'tracer', labelKey: 'tracer', icon: Route },
   { id: 'ipcalc', labelKey: 'ipcalc', icon: Calculator },
   { id: 'pingport', labelKey: 'pingport', icon: Network },
   { id: 'dns', labelKey: 'dns', icon: Globe },
+  { id: 'subdomains', labelKey: 'subdomains', icon: ListTree },
+  { id: 'httpinspect', labelKey: 'httpinspect', icon: Webhook },
   { id: 'speedtest', labelKey: 'speedtest', icon: Gauge },
   { id: 'password', labelKey: 'password', icon: KeyRound },
+  { id: 'sshkeys', labelKey: 'sshkeys', icon: KeySquare },
   { id: 'ssh', labelKey: 'ssh', icon: Terminal },
 ]
 

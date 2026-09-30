@@ -6,8 +6,8 @@ import net from 'node:net'
 import pLimit from 'p-limit'
 import { PortResult, PortStatus, serviceForPort } from '@shared/pingport-types'
 
-/** TCP-проверка одного порта. */
-function checkTcp(host: string, port: number, timeoutMs: number): Promise<PortResult> {
+/** TCP-проверка одного порта. Используется и здесь, и в полном сканере портов. */
+export function checkTcp(host: string, port: number, timeoutMs: number): Promise<PortResult> {
   return new Promise((resolve) => {
     const start = Date.now()
     const socket = new net.Socket()

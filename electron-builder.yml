@@ -5,6 +5,7 @@ directories:
   buildResources: build
 files:
   - out/**/*
+  - resources/**/*
   - package.json
   - node_modules/ssh2/**/*
   - node_modules/cpu-features/**/*

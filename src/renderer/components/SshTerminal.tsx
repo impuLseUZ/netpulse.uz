@@ -9,8 +9,23 @@
  * Вставка:
  *  - ПКМ → вставляет из буфера обмена (через contextmenu на контейнере)
  *  - Ctrl+V → перехватывается в onData (\x16) и тоже вставляет из буфера
+ *
+ * Подсказки команд (ghost-suggestion, как в fish/PSReadLine):
+ *  - Локально отслеживаем «предполагаемый» текст текущей строки ввода —
+ *    только по нашим же исходящим клавишам (best-effort: реальный редактор
+ *    строки живёт на сервере, мы его не видим). Любая escape-последовательность
+ *    (стрелки, история и т.п.) сбрасывает отслеживание, чтобы не показывать
+ *    подсказку по неверному контексту.
+ *  - История команд — per-host, хранится в localStorage, ничего не уходит
+ *    на сервер.
+ *  - Подсказка рисуется отдельным div поверх xterm (не пишется в сам буфер
+ *    терминала, чтобы не конфликтовать с эхом от сервера), позиционируется
+ *    по cursorX/cursorY терминала и обновляется на onCursorMove.
+ *  - Принять: → (Right Arrow) или Tab — досылает остаток строки как обычный
+ *    ввод. Если подсказки нет — Tab уходит на сервер как обычно (нативное
+ *    автодополнение shell'а).
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
@@ -18,11 +33,45 @@ import 'xterm/css/xterm.css'
 
 interface Props {
   sessionId: string
+  /** Хост сессии — используется как ключ истории команд для подсказок. */
+  host: string
   /** Виден ли этот терминал (скрытые — не подгоняем размер). */
   active: boolean
 }
 
-export function SshTerminal({ sessionId, active }: Props): JSX.Element {
+const HISTORY_LIMIT = 200
+
+function historyKey(host: string): string {
+  return `netpulse:sshHistory:${host}`
+}
+
+function loadHistory(host: string): string[] {
+  try {
+    const raw = localStorage.getItem(historyKey(host))
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function saveHistory(host: string, history: string[]): void {
+  try {
+    localStorage.setItem(historyKey(host), JSON.stringify(history))
+  } catch {
+    // localStorage недоступен/переполнен — подсказки просто не переживут перезапуск.
+  }
+}
+
+interface SuggestionState {
+  text: string
+  top: number
+  left: number
+  lineHeight: number
+}
+
+export function SshTerminal({ sessionId, host, active }: Props): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
@@ -30,6 +79,53 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
   // без пересоздания слушателей при ре-рендере.
   const sessionIdRef = useRef(sessionId)
   sessionIdRef.current = sessionId
+
+  // ── Подсказки команд ──────────────────────────────────────────────────────
+  const historyRef = useRef<string[]>([])
+  const bufferRef = useRef('')          // наша лучшая догадка о текущей строке ввода
+  const suggestionRemainderRef = useRef('') // хвост подсказки (то что допечатать при Accept)
+  const [suggestion, setSuggestion] = useState<SuggestionState | null>(null)
+
+  const clearSuggestion = (): void => {
+    suggestionRemainderRef.current = ''
+    setSuggestion(null)
+  }
+
+  const recomputeSuggestion = (): void => {
+    const term = termRef.current
+    const container = containerRef.current
+    if (!term || !container) { clearSuggestion(); return }
+
+    const buf = bufferRef.current
+    const match = buf ? historyRef.current.find((h) => h !== buf && h.startsWith(buf)) : undefined
+    if (!match) { clearSuggestion(); return }
+    const remainder = match.slice(buf.length)
+    suggestionRemainderRef.current = remainder
+
+    const rect = container.getBoundingClientRect()
+    const cellWidth = rect.width / term.cols
+    const cellHeight = rect.height / term.rows
+    const cursorX = term.buffer.active.cursorX
+    const cursorY = term.buffer.active.cursorY
+
+    setSuggestion({
+      text: remainder,
+      left: cursorX * cellWidth,
+      top: cursorY * cellHeight,
+      lineHeight: cellHeight,
+    })
+  }
+
+  const commitHistory = (raw: string): void => {
+    const cmd = raw.trim()
+    if (!cmd) return
+    const hist = historyRef.current
+    const idx = hist.indexOf(cmd)
+    if (idx !== -1) hist.splice(idx, 1)
+    hist.unshift(cmd)
+    if (hist.length > HISTORY_LIMIT) hist.length = HISTORY_LIMIT
+    saveHistory(host, hist)
+  }
 
   /** Вставить текст из буфера обмена в SSH-сессию. */
   const paste = async (): Promise<void> => {
@@ -88,6 +184,7 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
 
     termRef.current = term
     fitRef.current = fitAddon
+    historyRef.current = loadHistory(host)
 
     // Ввод пользователя → main → SSH-сервер.
     // Ctrl+V (\x16) перехватываем и заменяем на реальную вставку из буфера,
@@ -97,8 +194,50 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
         void paste()
         return
       }
+
+      // Принять подсказку: → или Tab — только когда она реально показана.
+      if ((data === '\x1b[C' || data === '\t') && suggestionRemainderRef.current) {
+        const remainder = suggestionRemainderRef.current
+        bufferRef.current += remainder
+        clearSuggestion()
+        void window.netpulse.ssh.input({ sessionId: sessionIdRef.current, data: remainder })
+        return
+      }
+
+      // Best-effort отслеживание текущей строки ввода — только по нашим
+      // собственным клавишам, для подбора подсказки из истории.
+      if (data.length === 1) {
+        const code = data.charCodeAt(0)
+        if (data === '\r' || data === '\n') {
+          commitHistory(bufferRef.current)
+          bufferRef.current = ''
+        } else if (data === '\x7f' || data === '\b') {
+          bufferRef.current = bufferRef.current.slice(0, -1)
+        } else if (data === '\x03' || data === '\x15') {
+          // Ctrl+C / Ctrl+U — обрыв или очистка строки.
+          bufferRef.current = ''
+        } else if (data === '\x17') {
+          // Ctrl+W — стереть последнее «слово».
+          bufferRef.current = bufferRef.current.replace(/\S*\s*$/, '')
+        } else if (code >= 32 && code !== 127) {
+          bufferRef.current += data
+        }
+      } else if (data.charCodeAt(0) === 0x1b) {
+        // Стрелки/история/прочие escape-последовательности — теряем
+        // синхронизацию со строкой на сервере, сбрасываем догадку.
+        bufferRef.current = ''
+      } else {
+        // Вставка текста и т.п. — считаем печатным текстом.
+        bufferRef.current += data
+      }
+
+      clearSuggestion()
       void window.netpulse.ssh.input({ sessionId: sessionIdRef.current, data })
     })
+
+    // Курсор реально двигается только после эха с сервера — пересчитываем
+    // подсказку и её позицию именно в этот момент, а не сразу на onData.
+    const cursorMoveDispose = term.onCursorMove(() => recomputeSuggestion())
 
     // PTY-данные из main → терминал.
     const unsubData = window.netpulse.ssh.onData(
@@ -110,6 +249,7 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
 
     return () => {
       inputDispose.dispose()
+      cursorMoveDispose.dispose()
       unsubData()
       term.dispose()
       termRef.current = null
@@ -136,6 +276,7 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
           cols: term.cols,
           rows: term.rows,
         })
+        recomputeSuggestion()
       } catch {
         // FitAddon бросает если контейнер не виден — игнорируем.
       }
@@ -154,11 +295,28 @@ export function SshTerminal({ sessionId, active }: Props): JSX.Element {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full bg-term"
-      onClick={() => termRef.current?.focus()}
-      onContextMenu={handleContextMenu}
-    />
+    <div className="relative w-full h-full">
+      <div
+        ref={containerRef}
+        className="w-full h-full bg-term"
+        onClick={() => termRef.current?.focus()}
+        onContextMenu={handleContextMenu}
+      />
+      {suggestion && (
+        <div
+          className="absolute whitespace-pre pointer-events-none text-term-fg/35"
+          style={{
+            top: suggestion.top,
+            left: suggestion.left,
+            height: suggestion.lineHeight,
+            lineHeight: `${suggestion.lineHeight}px`,
+            fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", monospace',
+            fontSize: 14,
+          }}
+        >
+          {suggestion.text}
+        </div>
+      )}
+    </div>
   )
 }

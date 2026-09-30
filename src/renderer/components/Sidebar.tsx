@@ -4,6 +4,7 @@ import { Globe, Network } from 'lucide-react'
 import { NAV_ITEMS, SETTINGS_ITEM, type NavItem } from '@/lib/nav'
 import { useNavStore } from '@/store/nav'
 import { PulseTrace } from '@/components/ui'
+import logo from '../assets/logo.png'
 import type { NetAddresses } from '@shared/netinfo-types'
 import type { IpcResult } from '@shared/types'
 
@@ -61,8 +62,9 @@ export function Sidebar(): JSX.Element {
     <aside className="w-60 shrink-0 h-full bg-surface border-r border-border flex flex-col">
       <div className="px-4 py-5 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <PulseTrace width={30} height={13} />
+          <img src={logo} alt="" width={26} height={26} className="rounded-[7px] shrink-0" />
           <span className="font-semibold text-[15px] tracking-tight">NetPulse</span>
+          <PulseTrace width={22} height={10} className="ml-auto opacity-70" />
         </div>
         <p className="text-[11px] text-muted mt-1">{tagline}</p>
 

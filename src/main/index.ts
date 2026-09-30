@@ -5,6 +5,10 @@ import { maybeCheckOnStart } from './services/updater'
 import { stopAllContinuous } from './services/ping'
 import { disconnectAll as disconnectAllSsh } from './services/ssh'
 
+const iconPath = app.isPackaged
+  ? join(process.resourcesPath, 'resources/icon.png')
+  : join(__dirname, '../../build/icon.png')
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -14,6 +18,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#0b0e14',
+    icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,

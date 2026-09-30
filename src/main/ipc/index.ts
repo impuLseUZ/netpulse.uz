@@ -11,6 +11,11 @@ import { registerSpeedtestIpc } from './speedtest'
 import { registerNetinfoIpc } from './netinfo'
 import { registerSshIpc } from './ssh'
 import { registerSftpIpc } from './sftp'
+import { registerSubdomainsIpc } from './subdomains'
+import { registerPortScannerIpc } from './portscanner'
+import { registerLocalPortsIpc } from './localports'
+import { registerSshKeysIpc } from './sshkeys'
+import { registerHttpInspectIpc } from './httpinspect'
 
 export function registerAllIpc(): void {
   registerAppIpc()
@@ -23,4 +28,9 @@ export function registerAllIpc(): void {
   registerNetinfoIpc()
   registerSshIpc()
   registerSftpIpc()
+  registerSubdomainsIpc()
+  registerPortScannerIpc()
+  registerLocalPortsIpc()
+  registerSshKeysIpc()
+  registerHttpInspectIpc()
 }

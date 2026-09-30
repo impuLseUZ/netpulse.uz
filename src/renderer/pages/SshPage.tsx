@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Plus, Terminal, Trash2, Edit2, Wifi, WifiOff,
-  Loader, X, ServerCrash, FolderOpen,
+  Loader, X, ServerCrash, FolderOpen, Eye, EyeOff,
 } from 'lucide-react'
 import { useSshStore } from '@/store/ssh'
 import { SshTerminal } from '@/components/SshTerminal'
@@ -49,6 +49,17 @@ export function SshPage(): JSX.Element {
   const [promptProfile, setPromptProfile] = useState<SshProfilePublic | null>(null)
   // Вид для каждой сессии: терминал или SFTP.
   const [sessionViews, setSessionViews] = useState<Record<string, SessionView>>({})
+  // Какие профили сейчас показывают host/username в открытом виде.
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set())
+
+  const toggleRevealed = (id: string): void => {
+    setRevealedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => { void loadProfiles() }, [loadProfiles])
 
@@ -140,7 +151,7 @@ export function SshPage(): JSX.Element {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Левая панель — профили ── */}
-        <aside className="w-56 shrink-0 bg-surface border-r border-border flex flex-col">
+        <aside className="w-64 shrink-0 bg-surface border-r border-border flex flex-col">
           {/* Заголовок */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-border">
             <span className="text-[11px] font-semibold text-muted uppercase tracking-wider">
@@ -184,13 +195,24 @@ export function SshPage(): JSX.Element {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-fg truncate font-medium">{p.label}</p>
-                    <p className="text-[11px] text-muted truncate">
-                      {p.username}@{p.host}:{p.port}
-                    </p>
+                    {revealedIds.has(p.id) ? (
+                      <p className="text-[11px] text-muted font-mono break-all">
+                        {p.username}@{p.host}:{p.port}
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-muted font-mono">••••••••••••</p>
+                    )}
                   </div>
 
                   {/* Кнопки — при ховере */}
                   <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity shrink-0">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleRevealed(p.id) }}
+                      className="text-muted hover:text-fg transition-colors"
+                      title={revealedIds.has(p.id) ? t('ssh.hideDetails') : t('ssh.showDetails')}
+                    >
+                      {revealedIds.has(p.id) ? <EyeOff size={13} /> : <Eye size={13} />}
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEditProfile(p) }}
                       className="text-muted hover:text-fg transition-colors"
@@ -236,9 +258,6 @@ export function SshPage(): JSX.Element {
                   {t('ssh.viewFiles')}
                 </span>
               </Pill>
-              <div className="ml-auto text-[11px] text-muted font-mono">
-                {activeSess.host}
-              </div>
             </div>
           )}
 
@@ -312,6 +331,7 @@ export function SshPage(): JSX.Element {
                     >
                       <SshTerminal
                         sessionId={sess.sessionId}
+                        host={sess.host}
                         active={isActive && view === 'terminal'}
                       />
                     </div>

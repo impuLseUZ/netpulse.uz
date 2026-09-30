@@ -55,6 +55,27 @@ import {
   SftpTransferQuery,
   SftpCancelQuery,
 } from "@shared/ssh-types";
+import {
+  SubdomainHost,
+  SubdomainProgress,
+  SubdomainQuery,
+} from "@shared/subdomains-types";
+import {
+  PortScanHost,
+  PortScanProgress,
+  PortScanQuery,
+} from "@shared/portscan-types";
+import { LocalPortEntry } from "@shared/localports-types";
+import {
+  SshKeyMeta,
+  SshKeyGenerateQuery,
+  SshKeyImportQuery,
+  SshKeyExportResult,
+} from "@shared/sshkeys-types";
+import {
+  HttpRequestQuery,
+  HttpResponseResult,
+} from "@shared/httpinspect-types";
 
 /**
  * Единственный мост renderer <-> main.
@@ -254,6 +275,72 @@ const api = {
       return () =>
         ipcRenderer.removeListener(CHANNELS.sftp.progressEvent, listener);
     },
+  },
+
+  /** ── Поиск поддоменов ── */
+  subdomains: {
+    start: (query: SubdomainQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.subdomains.start, query),
+    cancel: (sessionId: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.subdomains.cancel, { sessionId }),
+    onHost: (cb: (ev: SubdomainHost) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: SubdomainHost): void => cb(ev);
+      ipcRenderer.on(CHANNELS.subdomains.hostEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.subdomains.hostEvent, listener);
+    },
+    onProgress: (cb: (ev: SubdomainProgress) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: SubdomainProgress): void => cb(ev);
+      ipcRenderer.on(CHANNELS.subdomains.progressEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.subdomains.progressEvent, listener);
+    },
+  },
+
+  /** ── Полный сканер TCP-портов ── */
+  portscan: {
+    start: (query: PortScanQuery): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.portscan.start, query),
+    cancel: (sessionId: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.portscan.cancel, { sessionId }),
+    onHost: (cb: (ev: PortScanHost) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: PortScanHost): void => cb(ev);
+      ipcRenderer.on(CHANNELS.portscan.hostEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.portscan.hostEvent, listener);
+    },
+    onProgress: (cb: (ev: PortScanProgress) => void): (() => void) => {
+      const listener = (_e: IpcRendererEvent, ev: PortScanProgress): void => cb(ev);
+      ipcRenderer.on(CHANNELS.portscan.progressEvent, listener);
+      return () =>
+        ipcRenderer.removeListener(CHANNELS.portscan.progressEvent, listener);
+    },
+  },
+
+  /** ── Локальный монитор портов/процессов ── */
+  localports: {
+    list: (): Promise<IpcResult<LocalPortEntry[]>> =>
+      ipcRenderer.invoke(CHANNELS.localports.list),
+  },
+
+  /** ── Менеджер SSH-ключей ── */
+  sshkeys: {
+    list: (): Promise<IpcResult<SshKeyMeta[]>> =>
+      ipcRenderer.invoke(CHANNELS.sshkeys.list),
+    generate: (query: SshKeyGenerateQuery): Promise<IpcResult<SshKeyMeta>> =>
+      ipcRenderer.invoke(CHANNELS.sshkeys.generate, query),
+    import: (query: SshKeyImportQuery): Promise<IpcResult<SshKeyMeta>> =>
+      ipcRenderer.invoke(CHANNELS.sshkeys.import, query),
+    delete: (id: string): Promise<IpcResult<void>> =>
+      ipcRenderer.invoke(CHANNELS.sshkeys.delete, { id }),
+    export: (id: string): Promise<IpcResult<SshKeyExportResult>> =>
+      ipcRenderer.invoke(CHANNELS.sshkeys.export, { id }),
+  },
+
+  /** ── HTTP-инспектор ── */
+  httpinspect: {
+    send: (query: HttpRequestQuery): Promise<IpcResult<HttpResponseResult>> =>
+      ipcRenderer.invoke(CHANNELS.httpinspect.send, query),
   },
 };
 

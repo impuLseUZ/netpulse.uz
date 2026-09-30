@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next'
 import {
   Folder, File, ChevronLeft, ChevronRight, ArrowUp,
   Search, FolderPlus, Pencil, Trash2, Loader,
-  AlertCircle, Home, ChevronDown, ArrowRightToLine,
-  ArrowLeftToLine, X, Check, HardDrive, RefreshCw,
+  AlertCircle, Home, ChevronDown,
+  X, Check, HardDrive, RefreshCw,
   CheckCircle2, XCircle, Upload, Download,
 } from 'lucide-react'
 import { Button, ProgressBar } from '@/components/ui'
@@ -807,26 +807,6 @@ export function SftpBrowser({ sessionId, serverLabel, active }: Props): JSX.Elem
           onDragStart={handleDragStart('local')} onDragOver={handleDragOver('local')}
           onDragLeave={handleDragLeave} onDrop={handleDrop('local')}
         />
-
-        {/* Кнопки передачи */}
-        <div className="flex flex-col items-center justify-center gap-2 px-1 bg-surface border-x border-border shrink-0 w-9">
-          <button onClick={() => { if (local.selected && !local.selected.isDirectory) void transferToRemote(local.selected) }}
-            disabled={!local.selected || local.selected.isDirectory} title="Загрузить на сервер →"
-            className={['w-7 h-7 rounded-full border flex items-center justify-center transition-colors',
-              local.selected && !local.selected.isDirectory
-                ? 'border-accent bg-accent/10 text-accent hover:bg-accent hover:text-accent-fg'
-                : 'border-border text-muted/30 cursor-not-allowed'].join(' ')}>
-            <ArrowRightToLine size={13} />
-          </button>
-          <button onClick={() => { if (remote.selected && !remote.selected.isDirectory) void transferToLocal(remote.selected) }}
-            disabled={!remote.selected || remote.selected.isDirectory} title="Скачать на компьютер ←"
-            className={['w-7 h-7 rounded-full border flex items-center justify-center transition-colors',
-              remote.selected && !remote.selected.isDirectory
-                ? 'border-accent bg-accent/10 text-accent hover:bg-accent hover:text-accent-fg'
-                : 'border-border text-muted/30 cursor-not-allowed'].join(' ')}>
-            <ArrowLeftToLine size={13} />
-          </button>
-        </div>
 
         {/* Правая */}
         <Panel

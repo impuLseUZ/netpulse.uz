@@ -110,6 +110,51 @@ export const CHANNELS = {
     /** Отменить активную передачу файла. */
     cancelTransfer: "sftp:cancelTransfer",
   },
+
+  /** ── Поиск поддоменов (CT-логи + DNS-перебор) ── */
+  subdomains: {
+    /** Запустить поиск. */
+    start: "subdomains:start",
+    /** Отменить активный поиск. */
+    cancel: "subdomains:cancel",
+    /** Push main → renderer: найденный поддомен (SubdomainHost). */
+    hostEvent: "subdomains:host",
+    /** Push main → renderer: прогресс (SubdomainProgress). */
+    progressEvent: "subdomains:progress",
+  },
+
+  /** ── Полный сканер TCP-портов ── */
+  portscan: {
+    /** Запустить скан. */
+    start: "portscan:start",
+    /** Отменить активный скан. */
+    cancel: "portscan:cancel",
+    /** Push main → renderer: открытый порт (PortScanHost). */
+    hostEvent: "portscan:host",
+    /** Push main → renderer: прогресс (PortScanProgress). */
+    progressEvent: "portscan:progress",
+  },
+
+  /** ── Локальный монитор портов/процессов ── */
+  localports: {
+    /** Снимок текущих слушающих портов (LocalPortEntry[]). */
+    list: "localports:list",
+  },
+
+  /** ── Менеджер SSH-ключей ── */
+  sshkeys: {
+    list: "sshkeys:list",
+    generate: "sshkeys:generate",
+    import: "sshkeys:import",
+    delete: "sshkeys:delete",
+    /** Расшифровать и вернуть приватный ключ — только по явному запросу пользователя. */
+    export: "sshkeys:export",
+  },
+
+  /** ── HTTP-инспектор ── */
+  httpinspect: {
+    send: "httpinspect:send",
+  },
 } as const;
 
 /** Тип всех строковых значений каналов — для типобезопасности в bridge. */
@@ -124,4 +169,9 @@ export type ChannelName =
   | (typeof CHANNELS.netinfo)[keyof typeof CHANNELS.netinfo]
   | (typeof CHANNELS.updater)[keyof typeof CHANNELS.updater]
   | (typeof CHANNELS.ssh)[keyof typeof CHANNELS.ssh]
-  | (typeof CHANNELS.sftp)[keyof typeof CHANNELS.sftp];
+  | (typeof CHANNELS.sftp)[keyof typeof CHANNELS.sftp]
+  | (typeof CHANNELS.subdomains)[keyof typeof CHANNELS.subdomains]
+  | (typeof CHANNELS.portscan)[keyof typeof CHANNELS.portscan]
+  | (typeof CHANNELS.localports)[keyof typeof CHANNELS.localports]
+  | (typeof CHANNELS.sshkeys)[keyof typeof CHANNELS.sshkeys]
+  | (typeof CHANNELS.httpinspect)[keyof typeof CHANNELS.httpinspect];
