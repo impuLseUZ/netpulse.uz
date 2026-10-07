@@ -11,7 +11,8 @@
  */
 import crypto from 'node:crypto'
 import { safeStorage } from 'electron'
-import { utils as ssh2Utils } from 'ssh2'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ssh2Utils = require('ssh2').utils
 import type {
   SshKeyMeta,
   SshKeyType,

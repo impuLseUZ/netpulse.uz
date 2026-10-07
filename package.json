@@ -1,6 +1,6 @@
 {
   "name": "netpulse",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "NetPulse — пульс вашей сети. Десктопное приложение сетевой диагностики и мониторинга.",
   "main": "out/main/index.js",
   "author": "impuLseUZ",
@@ -52,5 +52,11 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
     "vite": "^5.3.1"
+  },
+  "allowScripts": {
+    "electron@31.7.7": true,
+    "esbuild@0.21.5": true,
+    "cpu-features@0.0.10": true,
+    "ssh2@1.17.0": true
   }
 }
